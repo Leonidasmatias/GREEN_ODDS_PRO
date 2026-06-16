@@ -6,15 +6,43 @@ import { ValueAuditSummary, ValueOpportunityTable } from "@/components/ValueOppo
 import { getWorldCupOdds } from "@/services/oddsApi";
 import { buildValueReport } from "@/services/valueEngine";
 import { generateSettlementReport } from "@/services/settlementEngine";
+import { getSmartRankingReport } from "@/services/rankingEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
+type RankingRow = {
+  id?: string;
+  market?: string;
+  competition?: string;
+  bookmaker?: string;
+  provider?: string;
+  oddRange?: string;
+  totalTips: number;
+  wins: number;
+  losses: number;
+  voids: number;
+  winRate: number;
+  roi: number;
+  profit: number;
+  drawdown: number;
+  confidenceScore: number;
+  status?: string;
+};
+
+function RankingTable({ title, items, labelFor }: { title: string; items: RankingRow[]; labelFor: (item: RankingRow) => string }) {
+  return <section className="card overflow-hidden">
+    <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-[.14em]">{title}</p><p className="mt-1 text-[10px] text-zinc-600">Somente resultados reais liquidados</p></div>
+    <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Ranking</th><th>Tips</th><th>Win Rate</th><th>ROI</th><th>Profit</th><th>Drawdown</th><th>Confianca</th></tr></thead><tbody>{items.length ? items.map((item, index) => <tr key={item.id ?? `${title}-${index}`} className="border-b border-line/60"><td className="px-5 py-4"><b className="block">{labelFor(item)}</b><span className="text-[10px] text-zinc-600">{item.provider ?? "-"}</span></td><td>{item.totalTips}</td><td>{(item.winRate * 100).toFixed(1)}%</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.profit.toFixed(2)}u</td><td>{item.drawdown.toFixed(2)}u</td><td>{item.confidenceScore.toFixed(0)}/100</td></tr>) : <tr><td colSpan={7} className="px-5 py-10 text-center text-zinc-600">INSUFFICIENT_REAL_DATA</td></tr>}</tbody></table></div>
+  </section>;
+}
+
 export default async function DashboardPage() {
   const oddsFeed = await getWorldCupOdds();
   const valueReport = await buildValueReport();
   const settlement = await generateSettlementReport();
+  const ranking = await getSmartRankingReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
@@ -39,6 +67,14 @@ export default async function DashboardPage() {
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Entradas pendentes", settlement.pending], ["Entradas liquidadas", settlement.settled], ["WinRate real", `${(settlement.winRate * 100).toFixed(1)}%`], ["ROI real", `${settlement.roi.toFixed(2)}%`], ["Lucro real", `${settlement.profit.toFixed(2)}u`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
+    {ranking.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">SMART RANKING: INSUFFICIENT_REAL_DATA. {ranking.sourceRows}/{ranking.minimumSample} resultados reais liquidados.</div>}
+    <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <RankingTable title="Top Mercados" items={ranking.topMarkets} labelFor={(item) => `${item.market ?? "-"} · ${item.oddRange ?? "-"}`}/>
+      <RankingTable title="Top Competicoes" items={ranking.topCompetitions} labelFor={(item) => `${item.competition ?? "-"} · ${item.oddRange ?? "-"}`}/>
+      <RankingTable title="Top Bookmakers" items={ranking.topBookmakers} labelFor={(item) => `${item.bookmaker ?? "-"} · ${item.oddRange ?? "-"}`}/>
+      <RankingTable title="Top ROI" items={ranking.topRoi} labelFor={(item) => `${item.market ?? item.competition ?? item.bookmaker ?? "-"} · ${item.oddRange ?? "-"}`}/>
+      <RankingTable title="Top Win Rate" items={ranking.topWinRate} labelFor={(item) => `${item.market ?? item.competition ?? item.bookmaker ?? "-"} · ${item.oddRange ?? "-"}`}/>
+    </div>
     <section className="card mt-7 overflow-hidden"><div className="flex items-center justify-between border-b border-line px-5 py-5"><div><p className="text-sm font-black uppercase tracking-[.14em]">Entradas green validadas</p><p className="mt-1 text-[10px] text-zinc-600">{oddsFeed.provider} · atualizado em {formatDate(oddsFeed.updatedAt)}</p></div><Link href="/radar-green" className="text-[9px] font-black uppercase tracking-wider text-neon">Abrir radar</Link></div><ValueOpportunityTable items={valueReport.entries}/></section>
 
     <div className="mt-7 grid gap-6 xl:grid-cols-[1.65fr_.55fr]">

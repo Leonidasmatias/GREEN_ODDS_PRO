@@ -9,6 +9,7 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateSty
 
 export default async function RadarPage() {
   const report = await buildValueReport();
+  const validatedGreens = report.entries.filter((item) => (item.classification === "GREEN FORTE" || item.classification === "ELITE GREEN") && item.historicalSample >= 30 && item.marketSample >= 30);
   return <>
     <PageTitle eyebrow="Provider ativo" title="Radar de Odds Green" description="Mercados construidos exclusivamente a partir de odds reais persistidas do provider licenciado ativo."/>
     <ValueAuditSummary {...report.audit}/>
@@ -23,10 +24,10 @@ export default async function RadarPage() {
         </div>
         <span className="flex items-center gap-2 text-[10px] font-bold text-neon"><span className="h-2 w-2 animate-pulse rounded-full bg-neon"/> VALUE ENGINE V1</span>
       </div>
-      <ValueOpportunityTable items={[...report.entries, ...report.watchlist]}/>
+      <ValueOpportunityTable items={validatedGreens}/>
     </section>
     <div className="mt-4 flex gap-3 rounded-xl border border-line bg-white/[.02] p-4 text-xs leading-relaxed text-zinc-500">
-      <Info size={17} className="shrink-0 text-neon"/> O score usa odds reais persistidas e historico liquidado. Sem historico suficiente, o mercado fica como WATCH/INSUFFICIENT_REAL_DATA e nenhuma entrada green e forcada.
+      <Info size={17} className="shrink-0 text-neon"/> O Radar exibe somente GREEN FORTE e ELITE GREEN com historico real suficiente. Sem amostra minima liquidada, o mercado permanece INSUFFICIENT_REAL_DATA e nenhuma entrada green e forcada.
     </div>
   </>;
 }

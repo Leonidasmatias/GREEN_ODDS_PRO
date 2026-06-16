@@ -170,6 +170,77 @@ model MarketPerformance {
   @@map("market_performance")
 }
 
+model MarketRanking {
+  id              String   @id @default(cuid())
+  market          String
+  competition     String
+  provider        String
+  bookmaker       String
+  oddRange        String
+  totalTips       Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  drawdown        Float    @default(0)
+  confidenceScore Float    @default(0)
+  status          String   @default("INSUFFICIENT_REAL_DATA")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([market, competition, provider, bookmaker, oddRange])
+  @@index([roi, winRate])
+  @@map("market_rankings")
+}
+
+model CompetitionRanking {
+  id              String   @id @default(cuid())
+  competition     String
+  provider        String
+  oddRange        String
+  totalTips       Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  drawdown        Float    @default(0)
+  confidenceScore Float    @default(0)
+  status          String   @default("INSUFFICIENT_REAL_DATA")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([competition, provider, oddRange])
+  @@index([roi, winRate])
+  @@map("competition_rankings")
+}
+
+model BookmakerRanking {
+  id              String   @id @default(cuid())
+  bookmaker       String
+  provider        String
+  oddRange        String
+  totalTips       Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  drawdown        Float    @default(0)
+  confidenceScore Float    @default(0)
+  status          String   @default("INSUFFICIENT_REAL_DATA")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([bookmaker, provider, oddRange])
+  @@index([roi, winRate])
+  @@map("bookmaker_rankings")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String
