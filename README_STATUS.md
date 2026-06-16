@@ -8,53 +8,59 @@ Snapshot oficial salvo em: 2026-06-16
 - Ambiente alvo: Producao Railway
 - Banco: PostgreSQL Railway
 - Provider real prioritario: The Odds API
-- Mock em producao: desativado via `ALLOW_MOCK_PROVIDER=false`
-- Dados simulados: removidos do fluxo de producao; engines usam odds/resultados reais persistidos
+- Mock em producao: desativado
+- Dados sinteticos/mock: nao utilizados nos motores de producao
+- Phase 28 base commit: `e6bcd13cdcfbe748a849205d07f511bb176266ab`
 
-## Estado Git
+## Status Atual
 
-- Branch: `main`
-- Remoto: `origin/main`
-- Commit atual: `4f14b7dfa3b8b2065a2d606692ed730ca3ee880d`
-- Commit curto: `4f14b7d`
-- Ultimos commits:
-  - `4f14b7d feat: phase 18 settlement engine`
-  - `0a9dbf2 feat: phase 17 value engine`
-  - `8b7a4f2 feat: production certification phase 16`
-  - `08afff7 fix: avoid duplicate npm ci on railway`
-  - `b8d14c3 fix: remove railway engine strict build flag`
+- Phase 17 Value Engine: concluida
+- Phase 18 Settlement Engine: concluida
+- Phase 19 Smart Ranking Engine: concluida
+- Phase 20 Smart Confidence Engine: concluida
+- Phase 21 Machine Learning Real: concluida
+- Phase 22 Auto Discovery Engine: concluida
+- Phase 23 Portfolio & Bankroll Engine: concluida
+- Phase 24 Risk Shield & Exposure Control: concluida
+- Phase 25 Performance Attribution Engine: concluida
+- Phase 26 Adaptive Strategy Engine: concluida
+- Phase 27 Operations Intelligence & Data Quality: concluida
+- Phase 28 Real Result Collector + Auto Settlement: concluida
 
-## Deploy Railway
+## Componentes Operacionais
 
-- Ambiente: `cooperative-art / production`
-- Status do commit: `success`
-- Status do deployment: `success`
-- Deployment ID: `5075425459`
-- Criado em: `2026-06-16T06:32:29Z`
-- Atualizado em: `2026-06-16T06:34:47Z`
-- Painel: https://railway.com/project/025c80d0-cade-4a1e-9a32-f3f0260cae4f?environmentId=2c8e35c2-fd0f-4860-9d7c-44ce7454273b
+- PostgreSQL Railway operacional
+- Provider The Odds API ativo
+- RESULT_SYNC implementado
+- Settlement Engine operacional
+- Smart Confidence operacional
+- ML Engine operacional
+- Adaptive Strategy operacional
+- Data Quality operacional
+- Sistema aguardando crescimento organico da base real de resultados `WON`, `LOST` e `VOID`
 
-## Status Das Fases
+## Phase 28
 
-- Phase 17 Value Engine: concluida e implantada
-- Phase 18 Settlement Engine: pronta para deploy/aprovacao operacional; deployment Railway registrado como `success`
-- Proxima fase: Phase 19 - Smart Ranking Engine
+Arquivos principais:
 
-## Migrations
+- `prisma/migrations/20260616160000_phase28_real_result_collector/migration.sql`
+- `src/services/resultCollectorEngine.ts`
+- `src/services/schedulerService.ts`
 
-Migrations criadas e versionadas:
+Tabelas:
 
-- `20260616010000_railway_postgres_ready`
-- `20260616023000_phase17_value_engine`
-- `20260616050000_phase18_settlement_engine`
+- `match_results`
+- `result_sync_runs`
+- `settlement_audits`
 
-Confirmacao:
+Job:
 
-- `prisma validate`: OK em schema local
-- `prisma generate`: OK
-- `npm run build`: OK
-- Railway executa `npm run db:deploy` no pre-deploy
-- Como o deployment Railway do commit `4f14b7d` ficou `success`, as migrations foram aceitas no fluxo de producao
+- `RESULT_SYNC`
+
+Regra operacional:
+
+- Nenhum `TipResult` e criado sem resultado final real vindo de provider licenciado.
+- Se o resultado nao existir, o fluxo permanece `PENDING`.
 
 ## Variaveis Obrigatorias
 
@@ -64,7 +70,6 @@ Confirmacao:
 - `SCHEDULER_ENABLED=true`
 - `ODDS_SYNC_INTERVAL_MINUTES`
 - `RESULTS_SYNC_INTERVAL_MINUTES`
-- `SETTLEMENT_SYNC_INTERVAL_MINUTES`
 - `OPERATION_MONITORING=true`
 - `BACKUP_DIR`
 - `ADMIN_USERNAME`
@@ -94,27 +99,37 @@ Opcionais conforme providers auxiliares:
 - `/api/audit`
 - `/api/audit/data`
 
-## Snapshot Tecnico
+## Pagina Institucional
 
-- Framework: Next.js 15
-- Runtime: Node.js >= 20
-- ORM: Prisma 6
-- Banco: PostgreSQL
-- Arquivos rastreados no snapshot de codigo: 145, excluindo `node_modules`, `.next` e backups locais
-- Build command Railway: `npm run build`
-- Pre-deploy Railway: `npm run db:deploy`
-- Start command Railway: `npm run start`
-- Healthcheck Railway: `/api/health`
+- `/about`
+
+## Assinatura Institucional
+
+Criado por:
+
+Leônidas Matias
+
+Supervisor de Telecomunicações  
+Engenheiro Eletricista
+
+GREEN ODDS PRO  
+Inteligencia estatistica para analise de odds com dados reais.
+
+Contato:
+
+- E-mail: [leonidasmatias81@gmail.com](mailto:leonidasmatias81@gmail.com)
+- Telefone: +55 11 93729-9687
 
 ## Pendencias Reais
 
-- Confirmar no painel Railway os valores reais das variaveis secretas, sem expor chaves.
-- Acompanhar primeiras execucoes reais do job `SETTLEMENT_SYNC`.
-- Aguardar resultados reais suficientes para liberar classificacoes fortes baseadas em amostra liquidada.
-- Phase 19 deve usar somente `TipResult`, `MarketPerformance` e `TrainingDataset` reais.
+- Acompanhar crescimento organico de resultados liquidados reais.
+- Confirmar ciclos de `RESULT_SYNC` em producao apos cada rodada finalizada.
+- Liberar sinais mais fortes somente quando houver amostra real suficiente.
+- Manter mock desativado em producao.
+- Monitorar Railway deployment e migrations no pre-deploy.
 
 ## Proxima Retomada
 
-PROJECT_STATE = SAVED
-NEXT_PHASE = 19
-RESUME_POINT = SMART_RANKING_ENGINE
+PROJECT_STATE = SAVED  
+NEXT_PHASE = 29  
+RESUME_POINT = ELITE_SIGNAL_ENGINE

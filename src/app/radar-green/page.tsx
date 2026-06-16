@@ -1,5 +1,6 @@
 import { Crosshair, Info } from "lucide-react";
 import { PageTitle } from "@/components/ui";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { ValueAuditSummary, ValueOpportunityTable } from "@/components/ValueOpportunityTable";
 import { buildValueReport } from "@/services/valueEngine";
 import { generateModelReport } from "@/services/mlEngine";
@@ -81,5 +82,6 @@ export default async function RadarPage() {
     <div className="mt-4 flex gap-3 rounded-xl border border-line bg-white/[.02] p-4 text-xs leading-relaxed text-zinc-500">
       <Info size={17} className="shrink-0 text-neon"/> O Radar exibe somente GREEN FORTE, ELITE GREEN e DIAMANTE com confidence real suficiente. Sem 30 liquidacoes reais, o mercado permanece INSUFFICIENT_REAL_DATA e nenhuma entrada green e forcada.
     </div>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

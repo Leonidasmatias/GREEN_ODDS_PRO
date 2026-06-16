@@ -3,6 +3,7 @@ import { Activity, ArrowRight, CalendarDays, CircleDollarSign, Crosshair, Histor
 import { SectionHeader } from "@/components/ui";
 import { OddsTable } from "@/components/OddsTable";
 import { ValueAuditSummary, ValueOpportunityTable } from "@/components/ValueOpportunityTable";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { getWorldCupOdds } from "@/services/oddsApi";
 import { buildValueReport } from "@/services/valueEngine";
 import { generateSettlementReport } from "@/services/settlementEngine";
@@ -164,5 +165,6 @@ export default async function DashboardPage() {
     </div>
 
     <section className="card mt-6 overflow-hidden p-5 md:p-6"><SectionHeader title="Radar Green" detail={`${oddsFeed.provider} · ${valueReport.audit.watch} mercados em observacao`} href="/radar-green"/><ValueOpportunityTable items={valueReport.watchlist.slice(0, 4)} empty="Nenhuma partida encontrada"/></section>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

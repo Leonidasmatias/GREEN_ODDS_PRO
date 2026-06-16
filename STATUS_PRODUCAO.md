@@ -2,88 +2,79 @@
 
 Atualizado em: 2026-06-16
 
-## Ambiente
+## Projeto
 
-- Plataforma: Railway
-- Ambiente: `cooperative-art / production`
+- Nome: GREEN_ODDS_PRO
+- Ambiente: Producao Railway
 - Banco: PostgreSQL Railway
-- Provider ativo: The Odds API
-- Branch implantada: `main`
-- Commit implantado: `4f14b7dfa3b8b2065a2d606692ed730ca3ee880d`
+- Provider real ativo: The Odds API
+- Branch: `main`
+- Phase 28 base commit: `e6bcd13cdcfbe748a849205d07f511bb176266ab`
+- Railway deployment Phase 28: `5086596147`
 
-## Status Geral
+## Estado Operacional
 
-- Railway: `success`
-- PostgreSQL: operacional no fluxo Railway; migrations aceitas pelo pre-deploy
-- Prisma schema: valido
-- Build de producao: aprovado
+- PostgreSQL Railway: operacional no fluxo Railway
+- The Odds API: provider licenciado ativo
 - Mock em producao: desativado
-- Dados simulados: fora do fluxo de producao
-- Promessa de lucro/green garantido: nao existe no produto
+- Dados simulados: nao utilizados pelos motores de producao
+- RESULT_SYNC: implementado
+- Settlement Engine: operacional
+- Smart Confidence: operacional
+- ML Engine: operacional, bloqueado por amostra quando necessario
+- Adaptive Strategy: operacional, sem remover Risk Shield ou limites de banca
+- Data Quality: operacional, apenas audita e alerta
+- Sistema: aguardando crescimento organico da base real de resultados `WON`, `LOST` e `VOID`
 
-## Fases Implantadas
+## Fases Concluidas
 
-### Phase 17 - Value Engine
+- Phase 17 - Value Engine Profissional: concluida
+- Phase 18 - Settlement Engine + Aprendizado Real: concluida
+- Phase 19 - Smart Ranking Engine: concluida
+- Phase 20 - Smart Confidence Engine: concluida
+- Phase 21 - Machine Learning Real: concluida
+- Phase 22 - Auto Discovery Engine: concluida
+- Phase 23 - Portfolio & Bankroll Engine: concluida
+- Phase 24 - Risk Shield & Exposure Control: concluida
+- Phase 25 - Performance Attribution Engine: concluida
+- Phase 26 - Adaptive Strategy Engine: concluida
+- Phase 27 - Operations Intelligence & Data Quality: concluida
+- Phase 28 - Real Result Collector + Auto Settlement: concluida
 
-Status: concluida e implantada.
+## Phase 28
 
-Entregas:
+- Migration: `20260616160000_phase28_real_result_collector`
+- Tabelas: `match_results`, `result_sync_runs`, `settlement_audits`
+- Servico: `src/services/resultCollectorEngine.ts`
+- Job: `RESULT_SYNC`
+- Fluxo: Provider real -> `match_results` -> Settlement Engine -> `TipResult` -> Performance Attribution -> Smart Confidence -> ML Engine -> Discovery Engine -> Ranking Engine -> Adaptive Strategy
+- Regra central: se nao existir resultado final real, manter `PENDING`
 
-- Analise de odds reais persistidas.
-- Calculo de probabilidade implicita, margem, fair odds, probabilidade estimada, edge, EV, risco, score e classificacao.
-- Auditoria de odds analisadas, aprovadas, rejeitadas e motivos.
-- Persistencia em `value_analyses`.
+## Assinatura Institucional
 
-### Phase 18 - Settlement Engine
+Criado por:
 
-Status: pronta para deploy/aprovacao operacional; deployment Railway `success`.
+Leônidas Matias
 
-Entregas:
+Supervisor de Telecomunicações  
+Engenheiro Eletricista
 
-- Tabelas `TipResult`, `SettlementRun`, `MarketPerformance`.
-- Motor de liquidacao real em `settlementEngine`.
-- Tips aprovadas pelo Value Engine entram como `PENDING`.
-- Resultado `WON`, `LOST` ou `VOID` somente com resultado real persistido.
-- Sem resultado real, status permanece `PENDING`.
-- Aprendizado real alimentado por liquidações verificaveis.
+GREEN ODDS PRO  
+Inteligencia estatistica para analise de odds com dados reais.
 
-## Migrations De Producao
+Contato:
 
-- `20260616010000_railway_postgres_ready`
-- `20260616023000_phase17_value_engine`
-- `20260616050000_phase18_settlement_engine`
+- E-mail: [leonidasmatias81@gmail.com](mailto:leonidasmatias81@gmail.com)
+- Telefone: +55 11 93729-9687
 
-## Endpoints Operacionais
+## Proxima Fase
 
-- Health: `/api/health`
-- Readiness: `/api/readiness`
-- Go-live: `/api/go-live`
-- Certificado de producao: `/api/production-certificate`
-- Provider health: `/api/provider-health`
-- Sync odds: `/api/sync/odds`
-- Settlement: `/api/settle`
-- Jobs: `/api/jobs`
-- Performance: `/api/performance`
-- Model performance: `/api/model-performance`
-- AI report: `/api/green-ai-report`
+Phase 29 - Elite Signal Engine
 
-## Jobs
-
-- `ODDS_SYNC`
-- `SETTLEMENT_SYNC`
-- `PERFORMANCE_UPDATE`
-- `TRAINING_DATASET`
-- `DATA_QUALITY`
-- `BACKUP`
-
-## Pendencias Reais
-
-- Monitorar primeira janela completa de odds reais + resultados reais.
-- Confirmar volume minimo por mercado antes de liberar rankings fortes.
-- Confirmar backups em storage persistente Railway.
-- Registrar evidencias de `SETTLEMENT_SYNC` em `JobRun`.
-- Garantir que `ALLOW_MOCK_PROVIDER` permaneça falso em producao.
+Objetivo planejado: elevar a classificacao de sinais com base em resultado real liquidado, confidence historica, ML, discovery, bankroll, attribution e risk shield, sem prometer lucro ou green garantido.
 
 ## Veredito
 
-PHASE_18_DEPLOY_READY
+PROJECT_STATE = SAVED  
+NEXT_PHASE = 29  
+RESUME_POINT = ELITE_SIGNAL_ENGINE

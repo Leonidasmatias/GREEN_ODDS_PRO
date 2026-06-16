@@ -1,4 +1,5 @@
 import { Activity, AlertTriangle, CheckCircle2, Clock3 } from "lucide-react";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { getJobMonitor } from "@/services/schedulerService";
 
 export const dynamic = "force-dynamic";
@@ -43,5 +44,6 @@ export default async function JobsPage() {
       </div>
     </section>
     <div className="mt-6 rounded-xl border border-line p-4 text-[11px] text-zinc-500">Operacao e metricas nao representam promessa de lucro ou garantia de green. Aposte com responsabilidade.</div>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

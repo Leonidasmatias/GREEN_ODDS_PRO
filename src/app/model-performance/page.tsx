@@ -1,5 +1,6 @@
 import { Activity, BarChart3, BrainCircuit, Database, ShieldCheck, Target } from "lucide-react";
 import { ValueAuditSummary } from "@/components/ValueOpportunityTable";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { getModelPerformance } from "@/services/modelTrainingService";
 import { buildValueReport } from "@/services/valueEngine";
 import { generateSettlementReport } from "@/services/settlementEngine";
@@ -47,5 +48,6 @@ export default async function ModelPerformancePage() {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-7">{cards.map(([label,value,Icon]) => <div className="card p-5" key={label}><Icon size={16} className="text-neon"/><p className="label mt-4">{label}</p><strong className="mt-2 block text-2xl">{value}</strong></div>)}</div>
     <div className="mt-6 grid gap-6 xl:grid-cols-[.65fr_1.35fr]"><section className="card p-5"><p className="text-sm font-black uppercase tracking-wider">Status do aprendizado</p><div className="mt-5 space-y-4 text-xs"><p className="text-zinc-500">Confiança por volume <b className="float-right text-white">{data.status.confidence.level}</b></p><p className="text-zinc-500">Próximo treinamento <b className="float-right text-white">{data.status.nextTrainingAt} registros</b></p><p className="text-zinc-500">Novos desde a versão <b className="float-right text-white">{data.status.newRecordsSinceTraining}</b></p><p className="text-zinc-500">Versão atual <b className="float-right text-white">{current?.version ?? "Não treinado"}</b></p></div></section><section className="card p-5"><p className="text-sm font-black uppercase tracking-wider">Learning Curve</p><p className="mt-1 text-[10px] text-zinc-600">Evolução real das versões treinadas</p><div className="mt-6 space-y-5">{data.learningCurve.length ? data.learningCurve.map((item) => <div key={item.version}><div className="mb-2 flex justify-between text-xs"><b>{item.version}</b><span className="text-zinc-500">{item.recordsUsed} registros · {item.accuracy.toFixed(1)}% accuracy</span></div><div className="h-3 rounded-full bg-zinc-900"><div className="h-full rounded-full bg-gradient-to-r from-emerald-900 to-neon" style={{ width: `${Math.max(4, item.recordsUsed / maxRecords * 100)}%` }}/></div></div>) : <p className="py-10 text-center text-xs text-zinc-600">A curva será exibida após o primeiro treinamento com 100 resultados reais.</p>}</div></section></div>
     <div className="mt-6 rounded-xl border border-line bg-white/[.02] p-4 text-[11px] leading-relaxed text-zinc-500">Métricas históricas não prometem lucro nem garantem green. O modelo produz estimativas probabilísticas e depende da qualidade e quantidade dos dados reais.</div>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

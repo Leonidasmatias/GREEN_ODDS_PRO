@@ -1,5 +1,6 @@
 import { Activity, ArrowDownRight, ArrowUpRight, BrainCircuit } from "lucide-react";
 import { ValueAuditSummary } from "@/components/ValueOpportunityTable";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { getGreenAiReport } from "@/services/greenAiEngine";
 import { buildValueReport } from "@/services/valueEngine";
 import { generateSettlementReport } from "@/services/settlementEngine";
@@ -67,5 +68,6 @@ export default async function GreenAiReportPage() {
     <section className="card mt-6 overflow-hidden"><div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">ROI por mercado</p><p className="mt-1 text-[10px] text-zinc-600">Performance histórica observada, sem extrapolação garantida</p></div><div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Mercado</th><th>ROI</th><th>Yield</th><th>Win Rate</th><th>Lucro</th><th>Drawdown</th><th>Entradas</th></tr></thead><tbody>{report.markets.map((item) => <tr key={item.period} className="border-b border-line/60"><td className="px-5 py-4 font-black">{item.period}</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.yield.toFixed(2)}%</td><td>{item.winRate.toFixed(1)}%</td><td>{item.profit.toFixed(2)}u</td><td>{item.drawdown.toFixed(2)}u</td><td>{item.entries}</td></tr>)}</tbody></table></div></section>
     <section className="card mt-6 p-5"><div className="flex items-center gap-3"><BrainCircuit className="text-gold"/><div><p className="label">Evolução do modelo</p><h2 className="font-black">Performance mensal</h2></div></div><div className="mt-5 grid gap-3 md:grid-cols-3">{report.evolution.length ? report.evolution.map((item) => <div key={item.month} className="rounded-xl border border-line p-4 text-xs"><b>{item.month}</b><p className="mt-3 text-zinc-500">ROI <span className="float-right text-white">{item.roi.toFixed(2)}%</span></p><p className="mt-2 text-zinc-500">Win Rate <span className="float-right text-white">{item.winRate.toFixed(1)}%</span></p><p className="mt-2 text-zinc-500">Entradas <span className="float-right text-white">{item.entries}</span></p></div>) : <p className="text-xs text-zinc-600">A evolução aparecerá após as primeiras liquidações alimentarem o dataset.</p>}</div></section>
     <div className="mt-6 rounded-xl border border-line bg-white/[.02] p-4 text-[11px] leading-relaxed text-zinc-500">Relatório estatístico e probabilístico. Desempenho passado não garante resultados futuros, lucro ou green. Aposte com responsabilidade.</div>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

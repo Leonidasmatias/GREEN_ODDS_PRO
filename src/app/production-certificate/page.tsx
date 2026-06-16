@@ -1,4 +1,5 @@
 import { CheckCircle2, CircleX, FileCheck2, Gauge, ShieldCheck } from "lucide-react";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { getProductionCertificate } from "@/services/productionCertificationService";
 
 export const dynamic = "force-dynamic";
@@ -55,5 +56,6 @@ export default async function ProductionCertificatePage() {
       <p className="mt-2 text-xs text-zinc-500">Modo OPERATION_MONITORING: {data.monitoring.enabled ? "ativo" : "inativo"} · janela: {data.monitoring.windowDays} dias · alertas: {data.monitoring.alerts.length}</p>
     </section>
     <div className="mt-6 rounded-xl border border-line p-4 text-[11px] text-zinc-500">Certificacao tecnica nao promete lucro nem green garantido. O sistema trabalha com previsoes probabilisticas e dados reais auditaveis.</div>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

@@ -1,76 +1,70 @@
 # ROADMAP_FASES - GREEN_ODDS_PRO
 
-## Fases Concluidas Recentes
+Atualizado em: 2026-06-16
 
-### Phase 16 - Production Certification
+## Fases Concluidas
 
-- Certificacao operacional de producao.
-- Health, readiness, go-live e auditorias.
-- Railway/PostgreSQL prontos para operacao.
+- Phase 17 - Value Engine Profissional
+- Phase 18 - Settlement Engine + Aprendizado Real
+- Phase 19 - Smart Ranking Engine
+- Phase 20 - Smart Confidence Engine
+- Phase 21 - Machine Learning Real
+- Phase 22 - Auto Discovery Engine
+- Phase 23 - Portfolio & Bankroll Engine
+- Phase 24 - Risk Shield & Exposure Control
+- Phase 25 - Performance Attribution Engine
+- Phase 26 - Adaptive Strategy Engine
+- Phase 27 - Operations Intelligence & Data Quality
+- Phase 28 - Real Result Collector + Auto Settlement
 
-### Phase 17 - Value Engine Profissional
+## Estado Atual
 
-- Analise estatistica de odds reais.
-- Edge, EV, risco, score e classificacao.
-- Auditoria persistida.
-- Sem probabilidade inventada.
-- Sem promessa de lucro ou green garantido.
+- Producao ativa no Railway
+- PostgreSQL Railway operacional
+- Provider The Odds API ativo
+- RESULT_SYNC implementado e integrado ao scheduler
+- Settlement Engine operacional
+- Smart Confidence operacional
+- ML Engine operacional com bloqueio por amostra real minima
+- Adaptive Strategy operacional
+- Data Quality operacional
+- Sistema aguardando crescimento organico da base real de resultados `WON`, `LOST` e `VOID`
 
-### Phase 18 - Settlement Engine + Aprendizado Real
+## Proxima Fase Planejada
 
-- Motor de liquidacao com resultado real.
-- Tips aprovadas criadas como `PENDING`.
-- TipResult, SettlementRun e MarketPerformance.
-- Aprendizado com `WON`, `LOST` e `VOID` reais.
-- Performance por mercado baseada em liquidações.
-
-## Proxima Retomada
-
-### Phase 19 - Smart Ranking Engine
+### Phase 29 - Elite Signal Engine
 
 Objetivo:
 
-- Criar ranking inteligente baseado somente em resultados liquidados e performance real.
+- Criar uma camada final de sinal elite baseada somente em evidencias reais e liquidadas.
 
-Escopo:
+Escopo previsto:
 
-- Ranking por ROI real.
-- Ranking por win rate real.
-- Confianca historica por mercado, selecao, provider, bookmaker e faixa de odd.
-- Score adaptativo com peso maior para mercados liquidados.
-- Carteira automatica de oportunidades.
-- Classificacao baseada em `TipResult` e `MarketPerformance`.
-- Bloqueio de rankings fortes quando houver amostra insuficiente.
+- Consolidar Value Engine, Smart Confidence, ML, Auto Discovery, Ranking, Bankroll, Risk Shield, Performance Attribution e Adaptive Strategy.
+- Liberar sinais elite somente com amostra real suficiente.
+- Exigir provider real ativo, resultado historico liquidado, ROI real positivo e risco controlado.
+- Explicar motivo de bloqueio quando o sinal nao puder ser liberado.
+- Manter `INSUFFICIENT_REAL_DATA` quando a amostra real nao for suficiente.
 
-Fontes permitidas:
+Regras permanentes:
 
-- `Tip`
-- `TipResult`
-- `MarketPerformance`
-- `TrainingDataset`
-- `OddsSnapshot`
-- `ValueAnalysis`
-
-Regras:
-
-- Nao usar dados simulados.
-- Nao criar historico fake.
+- Nao usar dados mock.
+- Nao criar dados sinteticos.
+- Nao inventar probabilidade, ROI, lucro ou win rate.
 - Nao prometer lucro.
 - Nao prometer green garantido.
-- Sem resultado real, manter oportunidade fora do ranking de performance.
+- Nunca contornar Risk Shield ou limites de banca.
 
-Entregaveis esperados:
+## Assinatura Institucional
 
-- `src/services/smartRankingEngine.ts`
-- Tipos em `src/lib/rankingTypes.ts`
-- Atualizacao do Radar Green.
-- Atualizacao do Dashboard.
-- Atualizacao de Performance ML.
-- Auditoria de ranking.
-- Job opcional `RANKING_REFRESH`.
+Criado por Leônidas Matias, Supervisor de Telecomunicações e Engenheiro Eletricista.
 
-## Estado Para Retomada
+GREEN ODDS PRO - Inteligencia estatistica para analise de odds com dados reais.
 
-PROJECT_STATE = SAVED
-NEXT_PHASE = 19
-RESUME_POINT = SMART_RANKING_ENGINE
+Contato: [leonidasmatias81@gmail.com](mailto:leonidasmatias81@gmail.com) | +55 11 93729-9687
+
+## Retomada
+
+PROJECT_STATE = SAVED  
+NEXT_PHASE = 29  
+RESUME_POINT = ELITE_SIGNAL_ENGINE

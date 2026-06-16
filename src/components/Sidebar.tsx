@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BrainCircuit, CalendarDays, Command, Crosshair, Database, FileBarChart, FileCheck2, FlaskConical, Gauge, HeartPulse, History, Layers3, LockKeyhole, Radio, Rocket, Settings, ShieldCheck, Sparkles, Timer, Trophy } from "lucide-react";
+import { Activity, BrainCircuit, CalendarDays, Command, Crosshair, Database, FileBarChart, FileCheck2, FlaskConical, Gauge, HeartPulse, History, Info, Layers3, LockKeyhole, Radio, Rocket, Settings, ShieldCheck, Sparkles, Timer, Trophy } from "lucide-react";
 
 const links = [
   ["/command-center", "Command Center", Command],
@@ -29,6 +29,7 @@ const links = [
   ["/audit", "Auditoria", FileCheck2],
   ["/audit/data", "Auditoria Dados", Database],
   ["/configuracoes", "Configuracoes", Settings],
+  ["/about", "Institucional", Info],
 ] as const;
 
 export function Sidebar() {

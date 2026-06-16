@@ -1,45 +1,77 @@
 # CHANGELOG
 
-## 2026-06-16 - Salvamento oficial Phase 18
+## 2026-06-16 - Save state Phase 28 + Creator Signature
 
-### Estado de producao
+### Estado salvo
 
-- Projeto GREEN_ODDS_PRO salvo em estado oficial.
-- Railway production confirmado com deployment `success`.
-- PostgreSQL Railway mantido como banco oficial via `DATABASE_URL`.
-- The Odds API registrada como provider real prioritario.
-- Mock desativado em producao.
-- Dados simulados removidos do fluxo operacional.
+- Snapshot oficial atualizado apos a Phase 28.
+- Documentacao de producao atualizada para refletir fases 17 a 28 concluidas.
+- Proxima fase planejada registrada: Phase 29 - Elite Signal Engine.
+- Sistema registrado como aguardando crescimento organico da base real de resultados `WON`, `LOST` e `VOID`.
 
-### Phase 18 - Settlement Engine
+### Assinatura institucional
 
-- Criado `src/services/settlementEngine.ts`.
-- Criadas tabelas Prisma:
+- Adicionada assinatura discreta no footer global.
+- Adicionada assinatura em:
+  - Dashboard
+  - Radar Green
+  - Odds do Dia
+  - Green AI
+  - Relatorio AI
+  - Performance ML
+  - Jobs
+  - Go Live
+  - Readiness
+  - Production Certificate
+- Criada rota institucional `/about`.
+
+### Phase 28 - Real Result Collector + Auto Settlement
+
+- Criada migration `20260616160000_phase28_real_result_collector`.
+- Criadas tabelas `match_results`, `result_sync_runs` e `settlement_audits`.
+- Criado `src/services/resultCollectorEngine.ts`.
+- Criado job `RESULT_SYNC`.
+- Resultado final real passa pelo fluxo:
+  - Provider licenciado
+  - `match_results`
+  - Settlement Engine
   - `TipResult`
-  - `SettlementRun`
-  - `MarketPerformance`
-- Expandido `Tip` com campos de provider, bookmaker, stake sugerida, score, profit, ROI e motivo de bloqueio.
-- Criado job `SETTLEMENT_SYNC`.
-- Settlement liquida apenas tips `PENDING` quando houver resultado real persistido.
-- Tips sem resultado real permanecem `PENDING`.
-- Training dataset recebe apenas resultados reais `WON`, `LOST` ou `VOID`.
-- Performance por mercado calcula entradas, wins, losses, voids, winRate, odd media, ROI, profit, drawdown e confidenceScore.
+  - Performance Attribution
+  - Smart Confidence
+  - ML Engine
+  - Discovery Engine
+  - Ranking Engine
+  - Adaptive Strategy
+- Quando resultado final real nao existe, o status permanece `PENDING`.
+- Nenhum resultado artificial, mock ou sintetico foi criado.
 
-### Phase 17 - Value Engine
+### Motores operacionais
 
-- Value Engine V1 concluido e implantado.
-- Criada tabela `ValueAnalysis`.
-- Entradas aprovadas passam a criar `Tip` com status `PENDING`.
-- `ELITE GREEN` exige amostra real minima do mercado, ROI real positivo, winRate acima da probabilidade implicita e drawdown controlado.
+- Value Engine operacional
+- Settlement Engine operacional
+- Smart Ranking operacional
+- Smart Confidence operacional
+- ML Engine operacional com amostra minima real
+- Auto Discovery operacional
+- Bankroll Engine operacional
+- Risk Shield operacional
+- Performance Attribution operacional
+- Adaptive Strategy operacional
+- Data Quality operacional
 
-### Validacoes
+### Validacoes esperadas para este snapshot
 
-- `npm run lint`: OK
-- `npm run build`: OK
-- `npm run db:generate`: OK
-- `npx prisma validate`: OK
-- `npx prisma migrate deploy`: executado pelo Railway no pre-deploy; deployment `success`
+- `npm run lint`
+- `npm run build`
+- `npm run db:generate`
+- `npx prisma validate`
 
-### Proxima fase
+### Assinatura
 
-- Fase 19 - Smart Ranking Engine.
+Criado por Leônidas Matias  
+Supervisor de Telecomunicações  
+Engenheiro Eletricista
+
+GREEN ODDS PRO - Inteligencia estatistica para analise de odds com dados reais.
+
+Contato: [leonidasmatias81@gmail.com](mailto:leonidasmatias81@gmail.com) | +55 11 93729-9687

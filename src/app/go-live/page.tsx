@@ -1,4 +1,5 @@
 import { CheckCircle2, CircleX, Database, Gauge, Radio, ShieldCheck, Timer, Trophy } from "lucide-react";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { runProductionAudit } from "@/services/goLiveService";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
@@ -38,5 +39,6 @@ export default async function GoLivePage() {
     <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Composicao do score</p><div className="mt-5 space-y-4">{data.categories.map((category) => <div key={category.name}><div className="mb-2 flex justify-between text-xs"><b>{category.name}</b><span>{category.score}/{category.max}</span></div><div className="h-2 rounded-full bg-zinc-900"><div className="h-full rounded-full bg-neon" style={{ width: `${category.score / category.max * 100}%` }}/></div></div>)}</div></section>
     <section className="card mt-6 overflow-hidden"><div className="border-b border-line p-5"><p className="text-sm font-black uppercase">Checklist completo</p></div><div className="divide-y divide-line/60">{data.checklist.map((check) => <div className="flex items-center gap-3 p-4" key={check.item}>{check.ok ? <CheckCircle2 className="text-neon" size={17}/> : <CircleX className="text-red-400" size={17}/>}<div><b className="text-xs">{check.item}</b><p className="mt-1 text-[10px] text-zinc-600">{check.detail}</p></div></div>)}</div></section>
     <div className="mt-6 rounded-xl border border-line p-4 text-[11px] text-zinc-500">Prontidao tecnica nao promete lucro nem garante green. Previsoes continuam probabilisticas e exigem gestao responsavel.</div>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

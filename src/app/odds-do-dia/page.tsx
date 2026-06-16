@@ -1,5 +1,6 @@
 import { Filter, SlidersHorizontal } from "lucide-react";
 import { PageTitle, StatCard } from "@/components/ui";
+import { CreatorSignature } from "@/components/CreatorSignature";
 import { ValueOpportunityTable } from "@/components/ValueOpportunityTable";
 import { getWorldCupOdds } from "@/services/oddsApi";
 import { buildValueReport } from "@/services/valueEngine";
@@ -89,5 +90,6 @@ export default async function OddsTodayPage() {
       </div>
       <ValueOpportunityTable items={preGameValues}/>
     </section>
+    <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }
