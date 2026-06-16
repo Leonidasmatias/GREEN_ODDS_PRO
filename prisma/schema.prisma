@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Match {
+  id          String   @id @default(cuid())
+  providerId  String?  @unique
+  competition String
+  homeTeam    String
+  awayTeam    String
+  startsAt    DateTime
+  status      String   @default("PRE_GAME")
+  homeScore   Int?
+  awayScore   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tips        Tip[]
+  oddsSnapshots OddsSnapshot[]
+
+  @@index([startsAt, status])
+  @@map("matches")
+}
+
+model OddsSnapshot {
+  id         String   @id @default(cuid())
+  matchId    String
+  market     String
+  selection  String
+  odd        Float
+  provider   String
+  capturedAt DateTime @default(now())
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, market, capturedAt])
+  @@index([provider, capturedAt])
+  @@map("odds_snapshots")
+}
+
+model Tip {
+  id                 String   @id @default(cuid())
+  matchId            String
+  gameLabel          String
+  market             String
+  selection          String
+  odd                Float
+  impliedProbability Float
+  estimatedProbability Float
+  edge               Float
+  expectedValue      Float
+  confidenceScore    Float
+  classification     String
+  risk               String
+  status             String   @default("PENDING")
+  stake              Float    @default(1)
+  profitLoss         Float?
+  createdAt          DateTime @default(now())
+  settledAt          DateTime?
+  match              Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([expectedValue, confidenceScore])
+  @@map("tips")
+}
+
+model SyncRun {
+  id                String   @id @default(cuid())
+  provider          String
+  mode              String
+  status            String
+  eventsReceived    Int      @default(0)
+  snapshotsCreated  Int      @default(0)
+  tipsCreated       Int      @default(0)
+  requestsRemaining Int?
+  warning           String?
+  startedAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  @@index([startedAt])
+  @@map("sync_runs")
+}
+
+model Performance {
+  id                String   @id @default(cuid())
+  periodStart       DateTime
+  periodEnd         DateTime
+  totalEntries      Int
+  greens            Int
+  reds              Int
+  pending           Int
+  totalStake        Float
+  accumulatedProfit Float
+  roi               Float
+  hitRate           Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([periodStart, periodEnd])
+  @@map("performance")
+}
+
+model ModelWeights {
+  id         String   @id @default("default")
+  form       Float    @default(20)
+  attack     Float    @default(20)
+  defense    Float    @default(20)
+  momentum   Float    @default(15)
+  ranking    Float    @default(10)
+  statistics Float    @default(15)
+  updatedAt  DateTime @updatedAt
+
+  @@map("model_weights")
+}
+
+model TrainingDataset {
+  id        String   @id @default(cuid())
+  tipId     String   @unique
+  matchId   String
+  market    String
+  odd       Float
+  impliedProbability Float @default(0)
+  estimatedProbability Float @default(0)
+  score     Float
+  ev        Float
+  edge      Float @default(0)
+  risk      String
+  result    String
+  profit    Float
+  generatedAt DateTime @default(now())
+  settledAt DateTime @default(now())
+  oddsMovement Float @default(0)
+  powerRating Float @default(0)
+  recentForm Float @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([market, result])
+  @@index([createdAt])
+  @@index([settledAt])
+  @@map("training_dataset")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  category  String
+  status    String
+  message   String
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([status, createdAt])
+  @@map("audit_logs")
+}
+
+model ModelVersion {
+  id          String   @id @default(cuid())
+  version     String   @unique
+  trainedAt   DateTime @default(now())
+  recordsUsed Int
+  winRate     Float
+  roi         Float
+  yield       Float
+  accuracy    Float
+  precision   Float
+  recall      Float
+  notes       String?
+
+  @@index([trainedAt])
+  @@map("model_versions")
+}
+
+model JobRun {
+  id          String   @id @default(cuid())
+  name        String
+  status      String   @default("PENDING")
+  scheduledAt DateTime @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  durationMs  Int?
+  message     String?
+  metadata    String?
+
+  @@index([name, scheduledAt])
+  @@index([status, scheduledAt])
+  @@map("job_runs")
+}
+
+model DataQualityAlert {
+  id        String   @id @default(cuid())
+  type      String
+  severity  String
+  status    String   @default("OPEN")
+  message   String
+  entityId  String?
+  metadata  String?
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+
+  @@index([status, severity])
+  @@index([type, createdAt])
+  @@map("data_quality_alerts")
+}
+
+model ProviderCall {
+  id               String   @id @default(cuid())
+  provider         String
+  operation        String
+  status           String
+  latencyMs        Int
+  callsMade        Int      @default(1)
+  remainingLimit   Int?
+  error            String?
+  createdAt        DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([status, createdAt])
+  @@map("provider_calls")
+}
+
+model SchedulerLease {
+  id        String   @id
+  ownerId   String
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("scheduler_leases")
+}
