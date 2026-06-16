@@ -2,13 +2,14 @@ import { Crosshair, Info } from "lucide-react";
 import { PageTitle } from "@/components/ui";
 import { ValueAuditSummary, ValueOpportunityTable } from "@/components/ValueOpportunityTable";
 import { buildValueReport } from "@/services/valueEngine";
+import { generateModelReport } from "@/services/mlEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function RadarPage() {
-  const report = await buildValueReport();
+  const [report, ml] = await Promise.all([buildValueReport(), generateModelReport()]);
   const validatedGreens = report.entries.filter((item) => (
     item.classification === "GREEN FORTE" ||
     item.classification === "ELITE GREEN" ||
@@ -17,6 +18,12 @@ export default async function RadarPage() {
   return <>
     <PageTitle eyebrow="Provider ativo" title="Radar de Odds Green" description="Mercados construidos exclusivamente a partir de odds reais persistidas do provider licenciado ativo."/>
     <ValueAuditSummary {...report.audit}/>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <div className="card p-4"><p className="label">ML status</p><strong className="mt-3 block text-lg text-white">{ml.status}</strong></div>
+      <div className="card p-4"><p className="label">Samples</p><strong className="mt-3 block text-lg text-white">{ml.totalSamples}/{ml.minimumSamples}</strong></div>
+      <div className="card p-4"><p className="label">WinRate backtest</p><strong className="mt-3 block text-lg text-white">{ml.winRateBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.winRateBacktest.toFixed(2)}%`}</strong></div>
+      <div className="card p-4"><p className="label">Predicoes ML</p><strong className="mt-3 block text-lg text-white">{ml.predictionsGenerated}</strong></div>
+    </section>
     <section className="card mt-6 overflow-hidden p-5 md:p-6">
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-3">

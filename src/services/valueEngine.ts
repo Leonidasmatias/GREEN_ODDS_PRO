@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { ValueAudit, ValueClassification, ValueOpportunity, ValueReport, ValueRisk } from "@/lib/valueTypes";
 import { oddRange } from "./settlementEngine";
 import { classifyBySmartConfidence } from "./smartConfidenceEngine";
+import { predictOutcomeProbability } from "./mlEngine";
 
 export const MINIMUM_REAL_HISTORY = 30;
 export const ENTRY_EDGE = 0.03;
@@ -243,11 +244,24 @@ export async function buildValueReport(): Promise<ValueReport> {
     const history = await estimateProbability(snapshot.market, snapshot.selection);
     const performance = await getMarketPerformance({ market: snapshot.market, selection: snapshot.selection, provider, bookmaker: snapshot.provider, competition: snapshot.match.competition, odd: snapshot.odd, impliedProbability });
     const smartConfidence = await getSmartConfidence({ market: snapshot.market, provider, bookmaker: snapshot.provider });
-    const edge = history.estimatedProbability == null ? null : history.estimatedProbability - fairProbability;
-    const ev = history.estimatedProbability == null ? null : history.estimatedProbability * snapshot.odd - 1;
-    const risk = classifyRisk(edge, margin.bookmakerMargin, history.sample);
-    const classification = classifyValue(edge, history.sample, smartConfidence);
-    const status = statusFor({ edge, ev, confidence: history.confidence, risk, sample: history.sample, classification });
+    const model = await predictOutcomeProbability({
+      matchId: snapshot.matchId,
+      market: snapshot.market,
+      selection: snapshot.selection,
+      competition: snapshot.match.competition,
+      provider,
+      bookmaker: snapshot.provider,
+      odd: snapshot.odd,
+      impliedProbability,
+    });
+    const estimatedProbability = model.status === "READY" && model.modelProbability != null ? model.modelProbability : history.estimatedProbability;
+    const probabilitySample = model.status === "READY" ? MINIMUM_REAL_HISTORY : history.sample;
+    const confidence = model.status === "READY" ? Math.max(history.confidence, model.confidenceScore) : history.confidence;
+    const edge = estimatedProbability == null ? null : estimatedProbability - fairProbability;
+    const ev = estimatedProbability == null ? null : estimatedProbability * snapshot.odd - 1;
+    const risk = classifyRisk(edge, margin.bookmakerMargin, probabilitySample);
+    const classification = classifyValue(edge, probabilitySample, smartConfidence);
+    const status = statusFor({ edge, ev, confidence, risk, sample: probabilitySample, classification });
     for (const reason of status.rejectionReasons) increment(rejectionReasons, reason);
     const score = Math.round(Math.min(100, Math.max(0, pctScore(edge) * 4 + pctScore(ev) * 2 + history.confidence * 0.35 - margin.bookmakerMargin * 100)));
 
@@ -269,10 +283,14 @@ export async function buildValueReport(): Promise<ValueReport> {
       bookmakerMargin: round(margin.bookmakerMargin),
       fairProbability: round(fairProbability),
       fairOdd: round(fairOdd, 2),
-      estimatedProbability: history.estimatedProbability == null ? null : round(history.estimatedProbability),
+      estimatedProbability: estimatedProbability == null ? null : round(estimatedProbability),
+      probabilityModelVersion: model.modelVersion,
+      modelProbability: model.modelProbability,
+      modelConfidenceScore: model.confidenceScore,
+      modelStatus: model.status,
       edge: edge == null ? null : round(edge),
       expectedValue: ev == null ? null : round(ev),
-      confidence: Math.round(history.confidence),
+      confidence: Math.round(confidence),
       risk,
       score,
       classification,

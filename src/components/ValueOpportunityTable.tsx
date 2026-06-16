@@ -28,7 +28,7 @@ export function ValueOpportunityTable({ items, empty = "Nenhuma entrada green va
         <td>{prob(item.impliedProbability)}</td>
         <td>{pct(item.bookmakerMargin)}</td>
         <td>{item.fairOdd.toFixed(2)}</td>
-        <td className={item.estimatedProbability == null ? "text-amber-300" : "text-neon"}>{prob(item.estimatedProbability)}</td>
+        <td className={item.estimatedProbability == null ? "text-amber-300" : "text-neon"}>{prob(item.estimatedProbability)}<span className="mt-1 block text-[9px] text-zinc-600">{item.modelStatus === "READY" ? `ML ${item.modelConfidenceScore?.toFixed(0) ?? 0}` : item.modelStatus ?? item.probabilitySource}</span></td>
         <td className={(item.edge ?? 0) > 0 ? "font-black text-neon" : item.edge == null ? "text-amber-300" : "text-red-400"}>{pct(item.edge)}</td>
         <td className={(item.expectedValue ?? 0) > 0 ? "font-black text-neon" : item.expectedValue == null ? "text-amber-300" : "text-red-400"}>{pct(item.expectedValue)}</td>
         <td>{item.confidence}%</td>

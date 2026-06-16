@@ -21,6 +21,10 @@ export interface ValueOpportunity {
   fairProbability: number;
   fairOdd: number;
   estimatedProbability: number | null;
+  probabilityModelVersion?: string | null;
+  modelProbability?: number | null;
+  modelConfidenceScore?: number | null;
+  modelStatus?: string;
   edge: number | null;
   expectedValue: number | null;
   confidence: number;

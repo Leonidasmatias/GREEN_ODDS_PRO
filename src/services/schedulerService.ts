@@ -4,6 +4,7 @@ import { importResultsAndSettle } from "./resultImportService";
 import { getPerformance } from "./operationalService";
 import { buildTrainingDataset, generateTrainingMetrics, validateDataset } from "./trainingPipeline";
 import { trainModelIfEligible } from "./modelTrainingService";
+import { trainBaselineModel } from "./mlEngine";
 import { runDataQualityChecks } from "./dataQualityService";
 import { runAutomaticBackup } from "./backupService";
 import { redactSecrets } from "./securityService";
@@ -24,7 +25,7 @@ export const schedulerFrequencies = {
   backup: day,
 };
 
-type JobName = "ODDS_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "DATA_QUALITY" | "BACKUP";
+type JobName = "ODDS_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "DATA_QUALITY" | "BACKUP";
 const running = new Set<JobName>();
 const schedulerOwnerId = randomUUID();
 
@@ -73,6 +74,7 @@ export function startScheduler() {
   schedule("SETTLEMENT_SYNC", schedulerFrequencies.settlement, importResultsAndSettle);
   schedule("PERFORMANCE_UPDATE", schedulerFrequencies.performance, getPerformance);
   schedule("TRAINING_DATASET", schedulerFrequencies.dataset, async () => ({ build: await buildTrainingDataset(), validation: await validateDataset(), metrics: await generateTrainingMetrics(), training: await trainModelIfEligible() }));
+  schedule("ML_TRAINING", schedulerFrequencies.dataset, trainBaselineModel);
   schedule("DATA_QUALITY", schedulerFrequencies.dataQuality, runDataQualityChecks);
   schedule("BACKUP", schedulerFrequencies.backup, runAutomaticBackup);
 }

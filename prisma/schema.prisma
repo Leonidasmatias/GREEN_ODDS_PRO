@@ -334,6 +334,66 @@ model OddRangeConfidence {
   @@map("odd_range_confidence")
 }
 
+model MlTrainingRun {
+  id                  String    @id @default(cuid())
+  startedAt           DateTime  @default(now())
+  finishedAt          DateTime?
+  status              String    @default("RUNNING")
+  totalSamples        Int       @default(0)
+  wonSamples          Int       @default(0)
+  lostSamples         Int       @default(0)
+  voidSamples         Int       @default(0)
+  marketsCovered      Int       @default(0)
+  competitionsCovered Int       @default(0)
+  bookmakersCovered   Int       @default(0)
+  modelVersion        String
+  notes               String?
+  metrics             MlModelMetric[]
+
+  @@index([status, startedAt])
+  @@index([modelVersion])
+  @@map("ml_training_runs")
+}
+
+model MlModelMetric {
+  id              String        @id @default(cuid())
+  trainingRunId   String
+  accuracy        Float         @default(0)
+  precision       Float         @default(0)
+  recall          Float         @default(0)
+  roiBacktest     Float         @default(0)
+  winRateBacktest Float         @default(0)
+  sampleSize      Int           @default(0)
+  createdAt       DateTime      @default(now())
+  trainingRun     MlTrainingRun @relation(fields: [trainingRunId], references: [id], onDelete: Cascade)
+
+  @@index([trainingRunId])
+  @@index([createdAt])
+  @@map("ml_model_metrics")
+}
+
+model MlPrediction {
+  id                 String   @id @default(cuid())
+  matchId            String
+  market             String
+  selection          String
+  provider           String
+  bookmaker          String
+  odd                Float
+  impliedProbability Float
+  modelProbability   Float
+  edge               Float
+  confidenceScore    Float
+  classification     String
+  status             String
+  createdAt          DateTime @default(now())
+
+  @@index([matchId, market, selection])
+  @@index([provider, createdAt])
+  @@index([status, classification])
+  @@map("ml_predictions")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String

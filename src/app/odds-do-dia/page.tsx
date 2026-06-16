@@ -4,13 +4,14 @@ import { ValueOpportunityTable } from "@/components/ValueOpportunityTable";
 import { getWorldCupOdds } from "@/services/oddsApi";
 import { buildValueReport } from "@/services/valueEngine";
 import { getSmartConfidenceReport } from "@/services/smartConfidenceEngine";
+import { generateModelReport } from "@/services/mlEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function OddsTodayPage() {
-  const [feed, valueReport, confidence] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport()]);
+  const [feed, valueReport, confidence, ml] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport()]);
   const preGameValues = [...valueReport.entries, ...valueReport.watchlist].filter((item) => item.matchStatus === "PRE_GAME");
   return <>
     <PageTitle eyebrow="Pre-jogo" title="Odds do dia" description="Partidas do provider ativo e analise estatistica baseada somente em odds reais persistidas." action={<button className="flex items-center gap-2 rounded-xl border border-line bg-white/[.03] px-5 py-3 text-xs font-bold"><SlidersHorizontal size={15}/> Ajustar filtros</button>}/>
@@ -24,6 +25,13 @@ export default async function OddsTodayPage() {
       <StatCard label="MarketConfidence" value={(confidence.topMarkets[0]?.confidenceScore ?? 0).toFixed(0)} detail={confidence.topMarkets[0]?.market ?? "INSUFFICIENT_REAL_DATA"}/>
       <StatCard label="BookmakerConfidence" value={(confidence.topBookmakers[0]?.confidenceScore ?? 0).toFixed(0)} detail={confidence.topBookmakers[0]?.bookmaker ?? "INSUFFICIENT_REAL_DATA"} tone="yellow"/>
       <StatCard label="OddRangeConfidence" value={(confidence.topOddRanges[0]?.confidenceScore ?? 0).toFixed(0)} detail={confidence.topOddRanges[0]?.oddRange ?? "INSUFFICIENT_REAL_DATA"} tone="white"/>
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-5">
+      <StatCard label="ML status" value={ml.status} detail={ml.blockReason ?? "baseline real"}/>
+      <StatCard label="Samples ML" value={`${ml.totalSamples}/${ml.minimumSamples}`} detail="WON/LOST/VOID reais" tone="white"/>
+      <StatCard label="Accuracy ML" value={ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`} detail={ml.modelVersion ?? "sem modelo"} tone="yellow"/>
+      <StatCard label="ROI backtest" value={ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`} detail="sem promessa de lucro"/>
+      <StatCard label="Predicoes ML" value={ml.predictionsGenerated.toString()} detail="persistidas"/>
     </section>
     <section className="card mt-6 overflow-hidden">
       <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Confidence por historico real</p><p className="mt-1 text-[10px] text-zinc-600">Win rate, ROI, drawdown e sampleSize liberados somente com 30 liquidacoes reais</p></div>
