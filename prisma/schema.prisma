@@ -41,6 +41,34 @@ model OddsSnapshot {
   @@map("odds_snapshots")
 }
 
+model ValueAnalysis {
+  id                   String   @id @default(cuid())
+  matchId              String
+  oddsSnapshotId       String?
+  provider             String
+  market               String
+  selection            String
+  odd                  Float
+  impliedProbability   Float
+  bookmakerMargin      Float
+  fairOdd              Float
+  estimatedProbability Float?
+  edge                 Float?
+  expectedValue        Float?
+  risk                 String
+  classification       String
+  status               String
+  rejectionReasons     String?
+  historicalSample     Int      @default(0)
+  confidence           Float    @default(0)
+  score                Float    @default(0)
+  analyzedAt           DateTime @default(now())
+
+  @@index([provider, analyzedAt])
+  @@index([status, classification])
+  @@map("value_analyses")
+}
+
 model Tip {
   id                 String   @id @default(cuid())
   matchId            String
