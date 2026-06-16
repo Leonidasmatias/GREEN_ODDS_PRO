@@ -8,9 +8,10 @@ const date = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", 
 function jobMeta(metadata: string | null) {
   if (!metadata) return "-";
   try {
-    const parsed = JSON.parse(metadata) as { settlement?: { tipsProcessed?: number; tipsSettled?: number }; segmentsAnalyzed?: number; insightsGenerated?: number; risksDetected?: number; tipsBlocked?: number };
+    const parsed = JSON.parse(metadata) as { settlement?: { tipsProcessed?: number; tipsSettled?: number }; segmentsAnalyzed?: number; insightsGenerated?: number; risksDetected?: number; tipsBlocked?: number; adjustmentsGenerated?: number; adjustmentsApplied?: number; blockedSegments?: number };
     if (parsed.settlement) return `${parsed.settlement.tipsProcessed ?? 0}/${parsed.settlement.tipsSettled ?? 0}`;
     if (parsed.segmentsAnalyzed != null || parsed.insightsGenerated != null) return `segments ${parsed.segmentsAnalyzed ?? 0} / insights ${parsed.insightsGenerated ?? 0}`;
+    if (parsed.adjustmentsGenerated != null || parsed.adjustmentsApplied != null) return `adjust ${parsed.adjustmentsGenerated ?? 0}/${parsed.adjustmentsApplied ?? 0} / blocked ${parsed.blockedSegments ?? 0}`;
     if (parsed.risksDetected != null || parsed.tipsBlocked != null) return `risks ${parsed.risksDetected ?? 0} / blocked ${parsed.tipsBlocked ?? 0}`;
     return "-";
   } catch {

@@ -1,14 +1,16 @@
 import { CheckCircle2, CircleX, ShieldCheck } from "lucide-react";
 import { getReadinessReport } from "@/services/liveDataService";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
+import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReadinessPage() {
-  const [data, attribution] = await Promise.all([getReadinessReport(), getPerformanceAttributionReport()]);
+  const [data, attribution, adaptive] = await Promise.all([getReadinessReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport()]);
   const checks = [
     ...data.checks,
     { label: "Performance Attribution", ready: attribution.status === "READY", detail: `${attribution.totalTipsAnalyzed}/${attribution.minimumSample} TipResult reais WON/LOST/VOID; ${attribution.segmentsAnalyzed} segmentos.` },
+    { label: "Adaptive Strategy", ready: adaptive.status === "READY", detail: `${adaptive.totalTipsAnalyzed}/${adaptive.minimumSample} TipResult reais; ${adaptive.adjustmentsApplied} ajustes aplicados sem remover Risk Shield.` },
   ];
 
   return <>

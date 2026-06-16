@@ -688,6 +688,100 @@ model PerformanceAttributionInsight {
   @@map("performance_attribution_insights")
 }
 
+model AdaptiveStrategyRun {
+  id                   String                       @id @default(cuid())
+  startedAt            DateTime                     @default(now())
+  finishedAt           DateTime?
+  status               String                       @default("RUNNING")
+  totalTipsAnalyzed    Int                          @default(0)
+  segmentsAnalyzed     Int                          @default(0)
+  adjustmentsGenerated Int                          @default(0)
+  adjustmentsApplied   Int                          @default(0)
+  blockedSegments      Int                          @default(0)
+  modelVersion         String
+  notes                String?
+  adjustments          AdaptiveStrategyAdjustment[]
+  events               AdaptiveStrategyEvent[]
+
+  @@index([status, startedAt])
+  @@index([modelVersion])
+  @@map("adaptive_strategy_runs")
+}
+
+model AdaptiveStrategyRule {
+  id                       String    @id @default(cuid())
+  segmentType              String
+  segmentKey               String
+  market                   String?
+  competition              String?
+  bookmaker                String?
+  provider                 String?
+  oddRange                 String?
+  action                   String
+  weightMultiplier         Float     @default(1)
+  confidenceThresholdDelta Float     @default(0)
+  stakeMultiplier          Float     @default(1)
+  riskSensitivity          String    @default("NORMAL")
+  status                   String    @default("ACTIVE")
+  reason                   String
+  sampleSize               Int       @default(0)
+  roi                      Float     @default(0)
+  drawdown                 Float     @default(0)
+  variance                 Float     @default(0)
+  sourceRunId              String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@unique([segmentType, segmentKey])
+  @@index([status, action])
+  @@index([market, provider, bookmaker, oddRange])
+  @@map("adaptive_strategy_rules")
+}
+
+model AdaptiveStrategyAdjustment {
+  id                       String              @id @default(cuid())
+  runId                    String
+  ruleId                   String?
+  segmentType              String
+  segmentKey               String
+  action                   String
+  weightMultiplier         Float               @default(1)
+  confidenceThresholdDelta Float               @default(0)
+  stakeMultiplier          Float               @default(1)
+  riskSensitivity          String              @default("NORMAL")
+  sampleSize               Int                 @default(0)
+  roi                      Float               @default(0)
+  drawdown                 Float               @default(0)
+  variance                 Float               @default(0)
+  status                   String              @default("PENDING")
+  reason                   String
+  appliedAt                DateTime?
+  createdAt                DateTime            @default(now())
+  run                      AdaptiveStrategyRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([segmentType, action])
+  @@index([status, createdAt])
+  @@map("adaptive_strategy_adjustments")
+}
+
+model AdaptiveStrategyEvent {
+  id        String              @id @default(cuid())
+  runId     String?
+  eventType String
+  severity  String
+  action    String
+  reason    String
+  metadata  String?
+  createdAt DateTime            @default(now())
+  run       AdaptiveStrategyRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([eventType, severity])
+  @@index([createdAt])
+  @@map("adaptive_strategy_events")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String

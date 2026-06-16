@@ -5,6 +5,7 @@ import { classifyBySmartConfidence } from "./smartConfidenceEngine";
 import { predictOutcomeProbability } from "./mlEngine";
 import { getDiscoveryBlock } from "./autoDiscoveryEngine";
 import { recommendStake } from "./bankrollEngine";
+import { getAdaptiveStrategySignal } from "./adaptiveStrategyEngine";
 
 export const MINIMUM_REAL_HISTORY = 30;
 export const ENTRY_EDGE = 0.03;
@@ -55,7 +56,7 @@ function classifyValue(edge: number | null, sample: number, smart: { confidenceS
   return "WATCH";
 }
 
-function statusFor(item: { edge: number | null; ev: number | null; confidence: number; risk: ValueRisk; sample: number; classification: ValueClassification; discoveryBlockReason?: string | null }) {
+function statusFor(item: { edge: number | null; ev: number | null; confidence: number; risk: ValueRisk; sample: number; classification: ValueClassification; discoveryBlockReason?: string | null; adaptiveBlockReason?: string | null }) {
   const rejectionReasons: string[] = [];
   if (item.sample < MINIMUM_REAL_HISTORY) rejectionReasons.push("INSUFFICIENT_REAL_DATA");
   if (item.edge == null || item.edge <= ENTRY_EDGE) rejectionReasons.push("EDGE_BELOW_THRESHOLD");
@@ -63,6 +64,7 @@ function statusFor(item: { edge: number | null; ev: number | null; confidence: n
   if (item.confidence < ENTRY_CONFIDENCE) rejectionReasons.push("CONFIDENCE_BELOW_MINIMUM");
   if (item.risk === "ALTO") rejectionReasons.push("HIGH_RISK");
   if (item.discoveryBlockReason) rejectionReasons.push(item.discoveryBlockReason);
+  if (item.adaptiveBlockReason) rejectionReasons.push(item.adaptiveBlockReason);
   if (item.classification === "NO BET") rejectionReasons.push("NO_POSITIVE_EDGE");
   if (item.classification === "WATCH") {
     return { status: item.sample < MINIMUM_REAL_HISTORY ? "INSUFFICIENT_REAL_DATA" as const : "WATCH" as const, rejectionReasons };
@@ -263,10 +265,13 @@ export async function buildValueReport(): Promise<ValueReport> {
     const edge = estimatedProbability == null ? null : estimatedProbability - fairProbability;
     const ev = estimatedProbability == null ? null : estimatedProbability * snapshot.odd - 1;
     const risk = classifyRisk(edge, margin.bookmakerMargin, probabilitySample);
-    const discovery = await getDiscoveryBlock({ market: snapshot.market, provider, bookmaker: snapshot.provider, oddRange: oddRange(snapshot.odd) });
+    const range = oddRange(snapshot.odd);
+    const discovery = await getDiscoveryBlock({ market: snapshot.market, provider, bookmaker: snapshot.provider, oddRange: range });
+    const adaptive = await getAdaptiveStrategySignal({ market: snapshot.market, competition: snapshot.match.competition, provider, bookmaker: snapshot.provider, oddRange: range });
     const rawClassification = classifyValue(edge, probabilitySample, smartConfidence);
-    const classification = discovery.blocked && (rawClassification === "GREEN FORTE" || rawClassification === "ELITE GREEN" || rawClassification === "DIAMANTE") ? "WATCH" : rawClassification;
-    const status = statusFor({ edge, ev, confidence, risk, sample: probabilitySample, classification, discoveryBlockReason: discovery.reason });
+    const classification = (discovery.blocked || adaptive.blocked) && (rawClassification === "GREEN FORTE" || rawClassification === "ELITE GREEN" || rawClassification === "DIAMANTE") ? "WATCH" : rawClassification;
+    const adaptiveReason = adaptive.blocked ? `ADAPTIVE_STRATEGY_BLOCK:${adaptive.reason ?? "BLOCK_SEGMENT"}` : adaptive.confidenceThresholdDelta > 0 && confidence < ENTRY_CONFIDENCE + adaptive.confidenceThresholdDelta ? `ADAPTIVE_CONFIDENCE_THRESHOLD:${adaptive.confidenceThresholdDelta}` : undefined;
+    const status = statusFor({ edge, ev, confidence, risk, sample: probabilitySample, classification, discoveryBlockReason: discovery.reason, adaptiveBlockReason: adaptiveReason });
     const bankroll = await recommendStake({
       matchId: snapshot.matchId,
       market: snapshot.market,
@@ -281,7 +286,7 @@ export async function buildValueReport(): Promise<ValueReport> {
       expectedValue: ev,
       risk,
       drawdown: performance.maxDrawdown,
-      discoveryStatus: discovery.status,
+      discoveryStatus: adaptive.blocked ? "AVOID_OR_WATCH" : discovery.status,
     });
     for (const reason of status.rejectionReasons) increment(rejectionReasons, reason);
     const score = Math.round(Math.min(100, Math.max(0, pctScore(edge) * 4 + pctScore(ev) * 2 + history.confidence * 0.35 - margin.bookmakerMargin * 100)));

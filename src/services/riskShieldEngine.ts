@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { RiskCheckResult, RiskEvaluationInput, RiskShieldReport } from "@/lib/riskTypes";
+import { getAdaptiveStrategySignal } from "./adaptiveStrategyEngine";
 
 const round = (value: number, digits = 2) => Math.round(value * 10 ** digits) / 10 ** digits;
 
@@ -110,6 +111,12 @@ export async function evaluateRiskBeforeTip(input: RiskEvaluationInput): Promise
   const highRisk = input.risk === "ALTO" && input.confidenceScore < 80
     ? { action: "BLOCK", severity: "HIGH", reason: "HIGH_RISK_LOW_CONFIDENCE" } as RiskCheckResult
     : { action: "ALLOW", severity: "LOW", reason: "RISK_CONFIDENCE_OK" } as RiskCheckResult;
+  const adaptive = await getAdaptiveStrategySignal({ market: input.market, competition: input.competition, bookmaker: input.bookmaker, provider: input.bookmaker });
+  const adaptiveBlock = adaptive.blocked
+    ? { action: "BLOCK", severity: "CRITICAL", reason: `ADAPTIVE_STRATEGY_BLOCK:${adaptive.reason ?? "BLOCK_SEGMENT"}` } as RiskCheckResult
+    : adaptive.riskSensitivity === "STRICT"
+      ? { action: "WATCH_ONLY", severity: "HIGH", reason: "ADAPTIVE_STRATEGY_STRICT_RISK" } as RiskCheckResult
+      : { action: "ALLOW", severity: "LOW", reason: "ADAPTIVE_STRATEGY_OK" } as RiskCheckResult;
   const results = await Promise.all([
     checkDailyExposure(input.requestedStake),
     checkOpenExposure(input.requestedStake),
@@ -119,7 +126,7 @@ export async function evaluateRiskBeforeTip(input: RiskEvaluationInput): Promise
     checkDrawdownProtection(),
     checkCorrelation(input),
   ]);
-  const final = applyRiskAction([discoveryBlock, highRisk, ...results], input.requestedStake);
+  const final = applyRiskAction([discoveryBlock, highRisk, adaptiveBlock, ...results], input.requestedStake);
   if (final.action !== "ALLOW") {
     await prisma.riskEvent.create({ data: { tipId: input.tipId ?? undefined, eventType: "PRE_TIP_RISK", severity: final.severity, action: final.action, reason: final.reason } }).catch(() => undefined);
   }
