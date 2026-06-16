@@ -11,6 +11,7 @@ import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
+import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,7 @@ export default async function DashboardPage() {
   const discovery = await getAutoDiscoveryReport();
   const bankroll = await getBankrollReport();
   const riskShield = await getRiskShieldReport();
+  const attribution = await getPerformanceAttributionReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
@@ -108,10 +110,18 @@ export default async function DashboardPage() {
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
       {[["Risk Shield", riskShield.status], ["Riscos detectados", riskShield.risksDetected.toString()], ["Tips bloqueadas", riskShield.tipsBlocked.toString()], ["Stakes reduzidas", riskShield.stakesReduced.toString()], ["Correlacao", riskShield.correlationAlerts.toString()], ["Exposicao", riskShield.openExposure.toFixed(2)]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {[["Attribution", attribution.status], ["Tips atribuidas", `${attribution.totalTipsAnalyzed}/${attribution.minimumSample}`], ["Segmentos", attribution.segmentsAnalyzed.toString()], ["Insights", attribution.insightsGenerated.toString()], ["Drawdown alerts", attribution.drawdownAlerts.length.toString()], ["Calibracao", attribution.calibrationAlerts.length.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    {attribution.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">PERFORMANCE ATTRIBUTION: INSUFFICIENT_REAL_DATA. {attribution.blockReason ?? "Aguardando 30 TipResult reais WON/LOST/VOID."}</div>}
     {ml.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">ML ENGINE: INSUFFICIENT_REAL_DATA. {ml.blockReason ?? "Aguardando amostra minima real liquidada."}</div>}
     <section className="card mt-6 overflow-hidden p-5">
       <div className="mb-4 flex items-center justify-between"><div><p className="text-sm font-black uppercase tracking-[.14em]">Descobertas Automaticas</p><p className="mt-1 text-[10px] text-zinc-600">{discovery.totalTipsAnalyzed}/{discovery.minimumSample} tips reais liquidadas · {discovery.status}</p></div><Link href="/green-ai-report" className="text-[9px] font-black uppercase tracking-wider text-neon">Ver relatorio</Link></div>
       <div className="grid gap-4 lg:grid-cols-3"><div><p className="label mb-3">Top padroes positivos</p>{discovery.positivePatterns.slice(0, 3).map((item) => <p key={`${item.patternType}-${item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}`} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}</b><span className="float-right text-neon">{item.roi.toFixed(2)}%</span><span className="mt-1 block text-[10px] text-zinc-600">{item.status} · n={item.sampleSize}</span></p>) || null}</div><div><p className="label mb-3">Padroes negativos</p>{discovery.negativePatterns.slice(0, 3).map((item) => <p key={`${item.patternType}-${item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}`} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}</b><span className="float-right text-red-400">{item.roi.toFixed(2)}%</span><span className="mt-1 block text-[10px] text-zinc-600">{item.status} · n={item.sampleSize}</span></p>)}</div><div><p className="label mb-3">Recomendacoes</p>{discovery.recommendations.slice(0, 3).map((item) => <p key={item.title} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.title}</b><span className="mt-1 block text-[10px] text-zinc-600">{item.reason}</span></p>)}</div></div>
+    </section>
+    <section className="card mt-6 overflow-hidden p-5">
+      <div className="mb-4 flex items-center justify-between"><div><p className="text-sm font-black uppercase tracking-[.14em]">Performance Attribution</p><p className="mt-1 text-[10px] text-zinc-600">Lucro, prejuizo, drawdown e EV realizado por segmento liquidado real</p></div><Link href="/green-ai-report" className="text-[9px] font-black uppercase tracking-wider text-neon">Ver insights</Link></div>
+      <div className="grid gap-4 lg:grid-cols-3"><div><p className="label mb-3">Contribuidores positivos</p>{attribution.topPositiveSegments.slice(0, 3).map((item) => <p key={`${item.segmentType}-${item.segmentKey}`} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.segmentKey}</b><span className="float-right text-neon">{item.roi.toFixed(2)}%</span><span className="mt-1 block text-[10px] text-zinc-600">{item.segmentType} - n={item.totalTips}</span></p>)}</div><div><p className="label mb-3">Prejuizo/risco</p>{[...attribution.negativeSegments, ...attribution.drawdownAlerts].slice(0, 3).map((item) => <p key={`${item.segmentType}-${item.segmentKey}`} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.segmentKey}</b><span className="float-right text-red-400">{item.profit.toFixed(2)}u</span><span className="mt-1 block text-[10px] text-zinc-600">{item.status} - DD {item.drawdown.toFixed(2)}u</span></p>)}</div><div><p className="label mb-3">Insights</p>{attribution.insights.slice(0, 3).map((item) => <p key={item.title} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.title}</b><span className="mt-1 block text-[10px] text-zinc-600">{item.description}</span></p>)}</div></div>
     </section>
     <div className="mt-6 grid gap-6 xl:grid-cols-2">
       <RankingTable title="Top Mercados" items={ranking.topMarkets} labelFor={(item) => `${item.market ?? "-"} · ${item.oddRange ?? "-"}`}/>

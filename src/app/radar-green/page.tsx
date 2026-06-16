@@ -6,13 +6,14 @@ import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
+import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function RadarPage() {
-  const [report, ml, discovery, bankroll, riskShield] = await Promise.all([buildValueReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport()]);
+  const [report, ml, discovery, bankroll, riskShield, attribution] = await Promise.all([buildValueReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport()]);
   const validatedGreens = report.entries.filter((item) => (
     item.classification === "GREEN FORTE" ||
     item.classification === "ELITE GREEN" ||
@@ -38,6 +39,12 @@ export default async function RadarPage() {
       <div className="card p-4"><p className="label">Bloqueadas</p><strong className="mt-3 block text-lg text-white">{riskShield.tipsBlocked}</strong></div>
       <div className="card p-4"><p className="label">Reduzidas</p><strong className="mt-3 block text-lg text-white">{riskShield.stakesReduced}</strong></div>
       <div className="card p-4"><p className="label">Correlacao</p><strong className="mt-3 block text-lg text-white">{riskShield.correlationAlerts}</strong></div>
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <div className="card p-4"><p className="label">Attribution</p><strong className="mt-3 block text-lg text-white">{attribution.status}</strong></div>
+      <div className="card p-4"><p className="label">Amostra</p><strong className="mt-3 block text-lg text-white">{attribution.totalTipsAnalyzed}/{attribution.minimumSample}</strong></div>
+      <div className="card p-4"><p className="label">Segmentos negativos</p><strong className="mt-3 block text-lg text-white">{attribution.negativeSegments.length}</strong></div>
+      <div className="card p-4"><p className="label">Alertas EV/DD</p><strong className="mt-3 block text-lg text-white">{attribution.calibrationAlerts.length + attribution.drawdownAlerts.length}</strong></div>
     </section>
     <section className="card mt-6 p-5">
       <p className="text-sm font-black uppercase tracking-wider">Auto Discovery</p>

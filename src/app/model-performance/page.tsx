@@ -7,13 +7,14 @@ import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
+import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 
 export const dynamic = "force-dynamic";
 
 const metric = (value: number | null | undefined) => value == null ? "—" : `${value.toFixed(2)}%`;
 
 export default async function ModelPerformancePage() {
-  const [data, valueReport, settlement, ml, discovery, bankroll, riskShield] = await Promise.all([getModelPerformance(), buildValueReport(), generateSettlementReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport()]);
+  const [data, valueReport, settlement, ml, discovery, bankroll, riskShield, attribution] = await Promise.all([getModelPerformance(), buildValueReport(), generateSettlementReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport()]);
   const current = data.current;
   const cards = [
     ["Dataset size", data.status.records.toString(), Database], ["Accuracy", metric(current?.accuracy), Target], ["Precision", metric(current?.precision), ShieldCheck], ["Recall", metric(current?.recall), Activity], ["ROI", metric(current?.roi), BarChart3], ["Yield", metric(current?.yield), BarChart3], ["Win Rate", metric(current?.winRate), BrainCircuit],
@@ -33,6 +34,10 @@ export default async function ModelPerformancePage() {
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Risk Shield", riskShield.status], ["Riscos detectados", riskShield.risksDetected.toString()], ["Tips bloqueadas", riskShield.tipsBlocked.toString()], ["Stakes reduzidas", riskShield.stakesReduced.toString()], ["Alertas correlacao", riskShield.correlationAlerts.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
+    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      {[["Attribution", attribution.status], ["Tips atribuidas", `${attribution.totalTipsAnalyzed}/${attribution.minimumSample}`], ["Segmentos", attribution.segmentsAnalyzed.toString()], ["Insights", attribution.insightsGenerated.toString()], ["Calibracao EV", attribution.calibrationAlerts.length.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    <section className="card mb-6 overflow-hidden"><div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Attribution por segmento</p><p className="mt-1 text-[10px] text-zinc-600">Somente TipResult WON/LOST/VOID, sem performance pendente</p></div><div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Segmento</th><th>Status</th><th>Amostra</th><th>ROI</th><th>Profit</th><th>Drawdown</th><th>EV realizado</th></tr></thead><tbody>{[...attribution.topPositiveSegments, ...attribution.negativeSegments, ...attribution.drawdownAlerts, ...attribution.calibrationAlerts].slice(0, 12).map((item) => <tr key={`${item.segmentType}-${item.segmentKey}`} className="border-b border-line/60"><td className="px-5 py-4 font-black">{item.segmentKey}<span className="block text-[10px] text-zinc-600">{item.segmentType}</span></td><td>{item.status}</td><td>{item.totalTips}</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.profit.toFixed(2)}u</td><td>{item.drawdown.toFixed(2)}u</td><td>{(item.evRealizado * 100).toFixed(2)}%</td></tr>)}</tbody></table></div></section>
     {ml.status === "INSUFFICIENT_REAL_DATA" && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-5"><b className="text-amber-300">ML baseline bloqueado</b><p className="mt-2 text-xs text-zinc-400">{ml.blockReason ?? "Aguardando amostra minima real liquidada."} Nenhum modelo e treinado com historico fake.</p></div>}
     {!data.status.eligible && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-5"><b className="text-amber-300">Dados insuficientes para treinamento</b><p className="mt-2 text-xs text-zinc-400">{data.status.records} de {data.status.minimum} tips liquidadas WON/LOST. Nenhuma métrica de modelo foi estimada.</p></div>}
     <section className="mb-6"><ValueAuditSummary {...valueReport.audit}/></section>

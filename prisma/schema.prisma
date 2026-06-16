@@ -607,6 +607,87 @@ model CorrelationBlock {
   @@map("correlation_blocks")
 }
 
+model PerformanceAttributionRun {
+  id                String                          @id @default(cuid())
+  startedAt         DateTime                        @default(now())
+  finishedAt        DateTime?
+  status            String                          @default("RUNNING")
+  totalTipsAnalyzed Int                             @default(0)
+  segmentsAnalyzed  Int                             @default(0)
+  insightsGenerated Int                             @default(0)
+  modelVersion      String
+  notes             String?
+  segments          PerformanceAttributionSegment[]
+  insights          PerformanceAttributionInsight[]
+
+  @@index([status, startedAt])
+  @@index([modelVersion])
+  @@map("performance_attribution_runs")
+}
+
+model PerformanceAttributionSegment {
+  id                String                    @id @default(cuid())
+  runId             String
+  segmentType       String
+  segmentKey        String
+  market            String?
+  competition       String?
+  bookmaker         String?
+  provider          String?
+  oddRange          String?
+  classification    String?
+  risk              String?
+  confidenceRange   String?
+  mlStatus          String?
+  discoveryStatus   String?
+  riskShieldAction  String?
+  bankrollStrategy  String?
+  totalTips         Int                       @default(0)
+  wins              Int                       @default(0)
+  losses            Int                       @default(0)
+  voids             Int                       @default(0)
+  winRate           Float                     @default(0)
+  roi               Float                     @default(0)
+  profit            Float                     @default(0)
+  averageOdd        Float                     @default(0)
+  averageStake      Float                     @default(0)
+  drawdown          Float                     @default(0)
+  hitRateByOddRange Float                     @default(0)
+  edgeRealizado     Float                     @default(0)
+  evRealizado       Float                     @default(0)
+  variance          Float                     @default(0)
+  sharpeLikeScore   Float                     @default(0)
+  maxLosingStreak   Int                       @default(0)
+  maxWinningStreak  Int                       @default(0)
+  status            String                    @default("INSUFFICIENT_REAL_DATA")
+  createdAt         DateTime                  @default(now())
+  run               PerformanceAttributionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([segmentType, status])
+  @@index([market, provider, bookmaker, oddRange])
+  @@map("performance_attribution_segments")
+}
+
+model PerformanceAttributionInsight {
+  id          String                    @id @default(cuid())
+  runId       String
+  insightType String
+  title       String
+  description String
+  severity    String
+  status      String
+  segmentType String?
+  segmentKey  String?
+  metricValue Float?
+  createdAt   DateTime                  @default(now())
+  run         PerformanceAttributionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([insightType, status])
+  @@map("performance_attribution_insights")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String

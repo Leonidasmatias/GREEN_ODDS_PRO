@@ -5,11 +5,14 @@ export const dynamic = "force-dynamic";
 
 const date = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value)) : "-";
 
-function settlementMeta(metadata: string | null) {
+function jobMeta(metadata: string | null) {
   if (!metadata) return "-";
   try {
-    const parsed = JSON.parse(metadata) as { settlement?: { tipsProcessed?: number; tipsSettled?: number } };
-    return parsed.settlement ? `${parsed.settlement.tipsProcessed ?? 0}/${parsed.settlement.tipsSettled ?? 0}` : "-";
+    const parsed = JSON.parse(metadata) as { settlement?: { tipsProcessed?: number; tipsSettled?: number }; segmentsAnalyzed?: number; insightsGenerated?: number; risksDetected?: number; tipsBlocked?: number };
+    if (parsed.settlement) return `${parsed.settlement.tipsProcessed ?? 0}/${parsed.settlement.tipsSettled ?? 0}`;
+    if (parsed.segmentsAnalyzed != null || parsed.insightsGenerated != null) return `segments ${parsed.segmentsAnalyzed ?? 0} / insights ${parsed.insightsGenerated ?? 0}`;
+    if (parsed.risksDetected != null || parsed.tipsBlocked != null) return `risks ${parsed.risksDetected ?? 0} / blocked ${parsed.tipsBlocked ?? 0}`;
+    return "-";
   } catch {
     return "-";
   }
@@ -31,8 +34,8 @@ export default async function JobsPage() {
     <section className="card mt-6 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-xs">
-          <thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Job</th><th>Status</th><th>Agendado</th><th>Inicio</th><th>Fim</th><th>Duracao</th><th>Mensagem</th><th>Tips processadas/liquidadas</th></tr></thead>
-          <tbody>{data.runs.map((run) => <tr key={run.id} className="border-b border-line/60"><td className="px-5 py-4 font-black">{run.name}</td><td className={run.status === "FAILED" ? "text-red-400" : "text-neon"}>{run.status}</td><td>{date(run.scheduledAt)}</td><td>{date(run.startedAt)}</td><td>{date(run.completedAt)}</td><td>{run.durationMs ?? 0} ms</td><td className="text-zinc-500">{run.message ?? "-"}</td><td className="text-zinc-500">{settlementMeta(run.metadata)}</td></tr>)}</tbody>
+          <thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Job</th><th>Status</th><th>Agendado</th><th>Inicio</th><th>Fim</th><th>Duracao</th><th>Mensagem</th><th>Metricas</th></tr></thead>
+          <tbody>{data.runs.map((run) => <tr key={run.id} className="border-b border-line/60"><td className="px-5 py-4 font-black">{run.name}</td><td className={run.status === "FAILED" ? "text-red-400" : "text-neon"}>{run.status}</td><td>{date(run.scheduledAt)}</td><td>{date(run.startedAt)}</td><td>{date(run.completedAt)}</td><td>{run.durationMs ?? 0} ms</td><td className="text-zinc-500">{run.message ?? "-"}</td><td className="text-zinc-500">{jobMeta(run.metadata)}</td></tr>)}</tbody>
         </table>
       </div>
     </section>
