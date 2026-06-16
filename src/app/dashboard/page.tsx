@@ -13,6 +13,7 @@ import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
+import { getDataQualityReport } from "@/services/dataQualityEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,7 @@ export default async function DashboardPage() {
   const riskShield = await getRiskShieldReport();
   const attribution = await getPerformanceAttributionReport();
   const adaptive = await getAdaptiveStrategyReport();
+  const dataQuality = await getDataQualityReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
@@ -117,6 +119,9 @@ export default async function DashboardPage() {
     </section>
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
       {[["Adaptive Strategy", adaptive.status], ["Amostra adaptativa", `${adaptive.totalTipsAnalyzed}/${adaptive.minimumSample}`], ["Segmentos lidos", adaptive.segmentsAnalyzed.toString()], ["Ajustes", adaptive.adjustmentsGenerated.toString()], ["Aplicados", adaptive.adjustmentsApplied.toString()], ["Bloqueios", adaptive.blockedSegments.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {[["Data Quality", dataQuality.classification], ["Score", `${dataQuality.score}/100`], ["Checks", dataQuality.checksRun.toString()], ["Alertas", dataQuality.alertsFound.toString()], ["Criticos", dataQuality.criticalCount.toString()], ["Warnings", dataQuality.warningCount.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     {adaptive.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">ADAPTIVE STRATEGY: INSUFFICIENT_REAL_DATA. {adaptive.blockReason ?? "Aguardando 30 TipResult reais WON/LOST/VOID."}</div>}
     {attribution.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">PERFORMANCE ATTRIBUTION: INSUFFICIENT_REAL_DATA. {attribution.blockReason ?? "Aguardando 30 TipResult reais WON/LOST/VOID."}</div>}

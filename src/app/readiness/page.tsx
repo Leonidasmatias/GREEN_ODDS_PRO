@@ -2,15 +2,17 @@ import { CheckCircle2, CircleX, ShieldCheck } from "lucide-react";
 import { getReadinessReport } from "@/services/liveDataService";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
+import { getDataQualityReport } from "@/services/dataQualityEngine";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReadinessPage() {
-  const [data, attribution, adaptive] = await Promise.all([getReadinessReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport()]);
+  const [data, attribution, adaptive, dataQuality] = await Promise.all([getReadinessReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getDataQualityReport()]);
   const checks = [
     ...data.checks,
     { label: "Performance Attribution", ready: attribution.status === "READY", detail: `${attribution.totalTipsAnalyzed}/${attribution.minimumSample} TipResult reais WON/LOST/VOID; ${attribution.segmentsAnalyzed} segmentos.` },
     { label: "Adaptive Strategy", ready: adaptive.status === "READY", detail: `${adaptive.totalTipsAnalyzed}/${adaptive.minimumSample} TipResult reais; ${adaptive.adjustmentsApplied} ajustes aplicados sem remover Risk Shield.` },
+    { label: "Data Quality", ready: dataQuality.classification !== "CRITICAL", detail: `Score ${dataQuality.score}/100 (${dataQuality.classification}); ${dataQuality.alertsFound} alertas auditados sem correcao automatica.` },
   ];
 
   return <>

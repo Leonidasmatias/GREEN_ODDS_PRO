@@ -905,17 +905,60 @@ model JobRun {
   @@map("job_runs")
 }
 
+model DataQualityRun {
+  id             String             @id @default(cuid())
+  startedAt      DateTime           @default(now())
+  finishedAt     DateTime?
+  status         String             @default("RUNNING")
+  score          Int                @default(100)
+  classification String             @default("EXCELLENT")
+  checksRun      Int                @default(0)
+  alertsFound    Int                @default(0)
+  criticalCount  Int                @default(0)
+  warningCount   Int                @default(0)
+  notes          String?
+  alerts         DataQualityAlert[]
+  events         DataQualityEvent[]
+
+  @@index([status, startedAt])
+  @@index([classification, score])
+  @@map("data_quality_runs")
+}
+
+model DataQualityEvent {
+  id        String          @id @default(cuid())
+  runId     String?
+  eventType String
+  severity  String
+  entity    String?
+  entityId  String?
+  message   String
+  metadata  String?
+  createdAt DateTime        @default(now())
+  run       DataQualityRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([eventType, severity])
+  @@index([createdAt])
+  @@map("data_quality_events")
+}
+
 model DataQualityAlert {
   id        String   @id @default(cuid())
+  runId     String?
   type      String
   severity  String
   status    String   @default("OPEN")
+  entity    String?
   message   String
   entityId  String?
+  scoreImpact Int    @default(0)
   metadata  String?
   createdAt DateTime @default(now())
   resolvedAt DateTime?
+  run       DataQualityRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
 
+  @@index([runId])
   @@index([status, severity])
   @@index([type, createdAt])
   @@map("data_quality_alerts")

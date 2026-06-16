@@ -30,7 +30,7 @@ export const schedulerFrequencies = {
   backup: day,
 };
 
-type JobName = "ODDS_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "AUTO_DISCOVERY" | "BANKROLL_RECALCULATION" | "RISK_MONITORING" | "PERFORMANCE_ATTRIBUTION" | "ADAPTIVE_STRATEGY" | "DATA_QUALITY" | "BACKUP";
+type JobName = "ODDS_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "AUTO_DISCOVERY" | "BANKROLL_RECALCULATION" | "RISK_MONITORING" | "PERFORMANCE_ATTRIBUTION" | "ADAPTIVE_STRATEGY" | "DATA_QUALITY_AUDIT" | "BACKUP";
 const running = new Set<JobName>();
 const schedulerOwnerId = randomUUID();
 
@@ -85,7 +85,7 @@ export function startScheduler() {
   schedule("RISK_MONITORING", schedulerFrequencies.performance, runRiskMonitoring);
   schedule("PERFORMANCE_ATTRIBUTION", schedulerFrequencies.performance, runPerformanceAttribution);
   schedule("ADAPTIVE_STRATEGY", schedulerFrequencies.performance, runAdaptiveStrategy);
-  schedule("DATA_QUALITY", schedulerFrequencies.dataQuality, runDataQualityChecks);
+  schedule("DATA_QUALITY_AUDIT", schedulerFrequencies.dataQuality, runDataQualityChecks);
   schedule("BACKUP", schedulerFrequencies.backup, runAutomaticBackup);
 }
 
