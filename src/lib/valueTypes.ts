@@ -43,6 +43,11 @@ export interface ValueOpportunity {
   smartConfidenceSampleSize?: number;
   discoveryStatus?: string | null;
   discoveryBlockReason?: string | null;
+  bankrollStatus?: string | null;
+  bankrollReason?: string | null;
+  recommendedStake?: number | null;
+  stakePercent?: number | null;
+  stakeStrategy?: string | null;
   settlementBlockReason?: string;
   probabilitySource: "SELECTION" | "MARKET";
   analyzedAt: string;

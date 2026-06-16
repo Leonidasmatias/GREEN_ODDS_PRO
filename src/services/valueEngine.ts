@@ -4,6 +4,7 @@ import { oddRange } from "./settlementEngine";
 import { classifyBySmartConfidence } from "./smartConfidenceEngine";
 import { predictOutcomeProbability } from "./mlEngine";
 import { getDiscoveryBlock } from "./autoDiscoveryEngine";
+import { recommendStake } from "./bankrollEngine";
 
 export const MINIMUM_REAL_HISTORY = 30;
 export const ENTRY_EDGE = 0.03;
@@ -216,9 +217,9 @@ async function createPendingTips(items: ValueOpportunity[]) {
         classification: item.classification,
         risk: item.risk,
         status: "PENDING",
-        stakeSuggested: 1,
-        stake: 1,
-        rejectionReason: item.settlementBlockReason,
+        stakeSuggested: item.bankrollStatus === "READY" ? item.recommendedStake ?? 0 : 0,
+        stake: item.bankrollStatus === "READY" ? item.recommendedStake ?? 0 : 0,
+        rejectionReason: item.bankrollReason ?? item.settlementBlockReason,
       },
     });
     created += 1;
@@ -266,6 +267,22 @@ export async function buildValueReport(): Promise<ValueReport> {
     const rawClassification = classifyValue(edge, probabilitySample, smartConfidence);
     const classification = discovery.blocked && (rawClassification === "GREEN FORTE" || rawClassification === "ELITE GREEN" || rawClassification === "DIAMANTE") ? "WATCH" : rawClassification;
     const status = statusFor({ edge, ev, confidence, risk, sample: probabilitySample, classification, discoveryBlockReason: discovery.reason });
+    const bankroll = await recommendStake({
+      matchId: snapshot.matchId,
+      market: snapshot.market,
+      selection: snapshot.selection,
+      competition: snapshot.match.competition,
+      bookmaker: snapshot.provider,
+      odd: snapshot.odd,
+      confidenceScore: Math.round(confidence),
+      impliedProbability,
+      modelProbability: model.modelProbability,
+      edge,
+      expectedValue: ev,
+      risk,
+      drawdown: performance.maxDrawdown,
+      discoveryStatus: discovery.status,
+    });
     for (const reason of status.rejectionReasons) increment(rejectionReasons, reason);
     const score = Math.round(Math.min(100, Math.max(0, pctScore(edge) * 4 + pctScore(ev) * 2 + history.confidence * 0.35 - margin.bookmakerMargin * 100)));
 
@@ -310,6 +327,11 @@ export async function buildValueReport(): Promise<ValueReport> {
       smartConfidenceSampleSize: smartConfidence.sampleSize,
       discoveryStatus: discovery.status,
       discoveryBlockReason: discovery.reason,
+      bankrollStatus: bankroll.status,
+      bankrollReason: bankroll.reason,
+      recommendedStake: bankroll.recommendedStake,
+      stakePercent: bankroll.stakePercent,
+      stakeStrategy: bankroll.strategy,
       settlementBlockReason: performance.blockReason,
       probabilitySource: history.source,
       analyzedAt,

@@ -459,6 +459,94 @@ model DiscoveryRecommendation {
   @@map("discovery_recommendations")
 }
 
+model BankrollProfile {
+  id                     String   @id @default(cuid())
+  name                   String
+  initialBankroll        Float
+  currentBankroll        Float
+  currency               String   @default("BRL")
+  riskProfile            String   @default("CONSERVADOR")
+  maxDailyRiskPercent    Float    @default(2)
+  maxStakePercent        Float    @default(1)
+  maxOpenExposurePercent Float    @default(5)
+  stopLossDailyPercent   Float    @default(5)
+  stopWinDailyPercent    Float    @default(5)
+  status                 String   @default("ACTIVE")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("bankroll_profiles")
+}
+
+model BankrollAllocation {
+  id          String   @id @default(cuid())
+  profileId   String
+  category    String
+  allocated   Float    @default(0)
+  used        Float    @default(0)
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId, category])
+  @@map("bankroll_allocations")
+}
+
+model ExposureLimit {
+  id           String   @id @default(cuid())
+  profileId    String
+  scope        String
+  scopeValue   String
+  maxPercent   Float
+  currentValue Float    @default(0)
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([profileId, scope, scopeValue])
+  @@map("exposure_limits")
+}
+
+model StakeRecommendation {
+  id                 String   @id @default(cuid())
+  tipId              String?
+  matchId            String
+  market             String
+  selection          String
+  odd                Float
+  confidenceScore    Float
+  modelProbability   Float?
+  edge               Float?
+  expectedValue      Float?
+  risk               String
+  recommendedStake   Float    @default(0)
+  stakePercent       Float    @default(0)
+  strategy           String
+  status             String
+  reason             String
+  createdAt          DateTime @default(now())
+
+  @@index([tipId])
+  @@index([matchId, market, selection])
+  @@index([status, createdAt])
+  @@map("stake_recommendations")
+}
+
+model BankrollEvent {
+  id        String   @id @default(cuid())
+  profileId String?
+  eventType String
+  amount    Float    @default(0)
+  balance   Float    @default(0)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([profileId, createdAt])
+  @@index([eventType, createdAt])
+  @@map("bankroll_events")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String

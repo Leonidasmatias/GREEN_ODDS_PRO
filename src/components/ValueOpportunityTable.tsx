@@ -21,7 +21,7 @@ const riskStyle: Record<ValueOpportunity["risk"], string> = {
 export function ValueOpportunityTable({ items, empty = "Nenhuma entrada green validada no momento." }: { items: ValueOpportunity[]; empty?: string }) {
   return <div className="overflow-x-auto scrollbar-none">
     <table className="w-full min-w-[1420px] text-left text-xs">
-      <thead><tr className="border-b border-line text-[9px] uppercase tracking-[.15em] text-zinc-600"><th className="px-4 py-4">Jogo / Mercado</th><th>Odd</th><th>Implicita</th><th>Margem</th><th>Fair odd</th><th>Prob. estimada</th><th>Edge</th><th>EV</th><th>Confianca</th><th>Amostra real</th><th>ROI real</th><th>Risco</th><th>Score</th><th>Classificacao</th></tr></thead>
+      <thead><tr className="border-b border-line text-[9px] uppercase tracking-[.15em] text-zinc-600"><th className="px-4 py-4">Jogo / Mercado</th><th>Odd</th><th>Implicita</th><th>Margem</th><th>Fair odd</th><th>Prob. estimada</th><th>Edge</th><th>EV</th><th>Confianca</th><th>Amostra real</th><th>ROI real</th><th>Stake</th><th>Risco</th><th>Score</th><th>Classificacao</th></tr></thead>
       <tbody>{items.length ? items.map((item) => <tr key={item.id} className="border-b border-line/60 transition hover:bg-white/[.025]">
         <td className="px-4 py-4"><b className="block text-white">{item.game}</b><span className="mt-1 block text-[10px] text-zinc-500">{item.market} - {item.selection}</span><span className="mt-1 block text-[9px] text-zinc-600">{item.bookmaker}</span></td>
         <td className="font-black text-white">{item.odd.toFixed(2)}</td>
@@ -34,10 +34,11 @@ export function ValueOpportunityTable({ items, empty = "Nenhuma entrada green va
         <td>{item.confidence}%</td>
         <td><span className="block font-black text-white">{item.marketSample}</span><span className="text-[9px] text-zinc-600">{item.discoveryBlockReason ?? item.smartConfidenceStatus ?? item.settlementBlockReason ?? "OK"}</span>{item.smartConfidenceScore != null && <span className="mt-1 block text-[9px] text-cyan-200">Conf {item.smartConfidenceScore.toFixed(0)} · n={item.smartConfidenceSampleSize ?? 0}</span>}</td>
         <td className={(item.marketRoi ?? 0) > 0 ? "text-neon" : "text-zinc-500"}>{item.marketRoi == null ? "INSUFFICIENT_REAL_DATA" : `${item.marketRoi.toFixed(2)}%`}</td>
+        <td>{item.bankrollStatus === "READY" ? <><b className="block text-white">{item.recommendedStake?.toFixed(2)}</b><span className="text-[9px] text-zinc-600">{item.stakePercent?.toFixed(3)}% · {item.stakeStrategy}</span></> : <span className="text-[9px] text-amber-300">{item.bankrollReason ?? "BANKROLL_NOT_CONFIGURED"}</span>}</td>
         <td className={`font-black ${riskStyle[item.risk]}`}>{item.risk}</td>
         <td>{item.score}/100</td>
         <td><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black ${classificationStyle[item.classification]}`}>{item.classification}</span></td>
-      </tr>) : <tr><td colSpan={14} className="px-4 py-14 text-center text-sm text-zinc-600">{empty}</td></tr>}</tbody>
+      </tr>) : <tr><td colSpan={15} className="px-4 py-14 text-center text-sm text-zinc-600">{empty}</td></tr>}</tbody>
     </table>
   </div>;
 }

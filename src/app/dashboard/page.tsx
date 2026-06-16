@@ -9,6 +9,7 @@ import { generateSettlementReport } from "@/services/settlementEngine";
 import { getSmartRankingReport } from "@/services/rankingEngine";
 import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
+import { getBankrollReport } from "@/services/bankrollEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,7 @@ export default async function DashboardPage() {
   const ranking = await getSmartRankingReport();
   const ml = await generateModelReport();
   const discovery = await getAutoDiscoveryReport();
+  const bankroll = await getBankrollReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
@@ -97,6 +99,9 @@ export default async function DashboardPage() {
     {ranking.smartConfidence.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">SMART CONFIDENCE: INSUFFICIENT_REAL_DATA. {ranking.smartConfidence.sourceRows}/{ranking.smartConfidence.minimumSample} resultados reais liquidados.</div>}
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
       {[["ML status", ml.status], ["Samples ML", `${ml.totalSamples}/${ml.minimumSamples}`], ["Versao", ml.modelVersion ?? "INSUFFICIENT_REAL_DATA"], ["Accuracy", ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`], ["ROI backtest", ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`], ["Predicoes", ml.predictionsGenerated.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {[["Bankroll", bankroll.status], ["Banca atual", bankroll.currentBankroll == null ? "BANKROLL_NOT_CONFIGURED" : `${bankroll.currency} ${bankroll.currentBankroll.toFixed(2)}`], ["Risco diario usado", `${bankroll.dailyRiskUsedPercent.toFixed(2)}%`], ["Exposicao aberta", `${bankroll.openExposurePercent.toFixed(2)}%`], ["Stakes geradas", bankroll.recommendationsGenerated.toString()], ["Bloqueadas", bankroll.blockedRecommendations.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     {ml.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">ML ENGINE: INSUFFICIENT_REAL_DATA. {ml.blockReason ?? "Aguardando amostra minima real liquidada."}</div>}
     <section className="card mt-6 overflow-hidden p-5">

@@ -5,13 +5,14 @@ import { buildValueReport } from "@/services/valueEngine";
 import { generateSettlementReport } from "@/services/settlementEngine";
 import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
+import { getBankrollReport } from "@/services/bankrollEngine";
 
 export const dynamic = "force-dynamic";
 
 const metric = (value: number | null | undefined) => value == null ? "—" : `${value.toFixed(2)}%`;
 
 export default async function ModelPerformancePage() {
-  const [data, valueReport, settlement, ml, discovery] = await Promise.all([getModelPerformance(), buildValueReport(), generateSettlementReport(), generateModelReport(), getAutoDiscoveryReport()]);
+  const [data, valueReport, settlement, ml, discovery, bankroll] = await Promise.all([getModelPerformance(), buildValueReport(), generateSettlementReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport()]);
   const current = data.current;
   const cards = [
     ["Dataset size", data.status.records.toString(), Database], ["Accuracy", metric(current?.accuracy), Target], ["Precision", metric(current?.precision), ShieldCheck], ["Recall", metric(current?.recall), Activity], ["ROI", metric(current?.roi), BarChart3], ["Yield", metric(current?.yield), BarChart3], ["Win Rate", metric(current?.winRate), BrainCircuit],
@@ -24,6 +25,9 @@ export default async function ModelPerformancePage() {
     </section>
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Discovery", discovery.status], ["Tips analisadas", `${discovery.totalTipsAnalyzed}/${discovery.minimumSample}`], ["Padroes", discovery.patternsFound.toString()], ["Recomendacoes", discovery.recommendationsGenerated.toString()], ["Bloqueio", discovery.blockReason ?? "OK"]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      {[["Bankroll", bankroll.status], ["Perfil", bankroll.riskProfile ?? "BANKROLL_NOT_CONFIGURED"], ["Risco diario", `${bankroll.dailyRiskUsedPercent.toFixed(2)}%`], ["Exposicao", `${bankroll.openExposurePercent.toFixed(2)}%`], ["Bloqueadas", bankroll.blockedRecommendations.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     {ml.status === "INSUFFICIENT_REAL_DATA" && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-5"><b className="text-amber-300">ML baseline bloqueado</b><p className="mt-2 text-xs text-zinc-400">{ml.blockReason ?? "Aguardando amostra minima real liquidada."} Nenhum modelo e treinado com historico fake.</p></div>}
     {!data.status.eligible && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-5"><b className="text-amber-300">Dados insuficientes para treinamento</b><p className="mt-2 text-xs text-zinc-400">{data.status.records} de {data.status.minimum} tips liquidadas WON/LOST. Nenhuma métrica de modelo foi estimada.</p></div>}

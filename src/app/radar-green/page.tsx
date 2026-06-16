@@ -4,13 +4,14 @@ import { ValueAuditSummary, ValueOpportunityTable } from "@/components/ValueOppo
 import { buildValueReport } from "@/services/valueEngine";
 import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
+import { getBankrollReport } from "@/services/bankrollEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function RadarPage() {
-  const [report, ml, discovery] = await Promise.all([buildValueReport(), generateModelReport(), getAutoDiscoveryReport()]);
+  const [report, ml, discovery, bankroll] = await Promise.all([buildValueReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport()]);
   const validatedGreens = report.entries.filter((item) => (
     item.classification === "GREEN FORTE" ||
     item.classification === "ELITE GREEN" ||
@@ -24,6 +25,12 @@ export default async function RadarPage() {
       <div className="card p-4"><p className="label">Samples</p><strong className="mt-3 block text-lg text-white">{ml.totalSamples}/{ml.minimumSamples}</strong></div>
       <div className="card p-4"><p className="label">WinRate backtest</p><strong className="mt-3 block text-lg text-white">{ml.winRateBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.winRateBacktest.toFixed(2)}%`}</strong></div>
       <div className="card p-4"><p className="label">Predicoes ML</p><strong className="mt-3 block text-lg text-white">{ml.predictionsGenerated}</strong></div>
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <div className="card p-4"><p className="label">Bankroll</p><strong className="mt-3 block text-lg text-white">{bankroll.status}</strong></div>
+      <div className="card p-4"><p className="label">Banca atual</p><strong className="mt-3 block text-lg text-white">{bankroll.currentBankroll == null ? "BANKROLL_NOT_CONFIGURED" : bankroll.currentBankroll.toFixed(2)}</strong></div>
+      <div className="card p-4"><p className="label">Risco diario</p><strong className="mt-3 block text-lg text-white">{bankroll.dailyRiskUsedPercent.toFixed(2)}%</strong></div>
+      <div className="card p-4"><p className="label">Exposicao</p><strong className="mt-3 block text-lg text-white">{bankroll.openExposurePercent.toFixed(2)}%</strong></div>
     </section>
     <section className="card mt-6 p-5">
       <p className="text-sm font-black uppercase tracking-wider">Auto Discovery</p>
