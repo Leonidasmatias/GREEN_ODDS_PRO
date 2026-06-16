@@ -394,6 +394,71 @@ model MlPrediction {
   @@map("ml_predictions")
 }
 
+model DiscoveryRun {
+  id                       String                    @id @default(cuid())
+  startedAt                DateTime                  @default(now())
+  finishedAt               DateTime?
+  status                   String                    @default("RUNNING")
+  totalTipsAnalyzed        Int                       @default(0)
+  patternsFound            Int                       @default(0)
+  recommendationsGenerated Int                       @default(0)
+  modelVersion             String
+  notes                    String?
+  patterns                 DiscoveryPattern[]
+  recommendations          DiscoveryRecommendation[]
+
+  @@index([status, startedAt])
+  @@index([modelVersion])
+  @@map("discovery_runs")
+}
+
+model DiscoveryPattern {
+  id              String                    @id @default(cuid())
+  runId           String
+  patternType     String
+  market          String?
+  competition     String?
+  bookmaker       String?
+  provider        String?
+  oddRange        String?
+  sampleSize      Int                       @default(0)
+  winRate         Float                     @default(0)
+  roi             Float                     @default(0)
+  profit          Float                     @default(0)
+  drawdown        Float                     @default(0)
+  confidenceScore Float                     @default(0)
+  mlScore         Float                     @default(0)
+  status          String                    @default("INSUFFICIENT_REAL_DATA")
+  createdAt       DateTime                  @default(now())
+  run             DiscoveryRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  recommendations DiscoveryRecommendation[]
+
+  @@index([runId])
+  @@index([patternType, status])
+  @@index([market, provider, bookmaker, oddRange])
+  @@map("discovery_patterns")
+}
+
+model DiscoveryRecommendation {
+  id                 String           @id @default(cuid())
+  runId              String
+  patternId          String?
+  title              String
+  description        String
+  recommendationType String
+  priority           String
+  status             String
+  reason             String
+  createdAt          DateTime         @default(now())
+  run                DiscoveryRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  pattern            DiscoveryPattern? @relation(fields: [patternId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([patternId])
+  @@index([recommendationType, status])
+  @@map("discovery_recommendations")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String

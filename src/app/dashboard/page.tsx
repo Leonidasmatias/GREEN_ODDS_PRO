@@ -8,6 +8,7 @@ import { buildValueReport } from "@/services/valueEngine";
 import { generateSettlementReport } from "@/services/settlementEngine";
 import { getSmartRankingReport } from "@/services/rankingEngine";
 import { generateModelReport } from "@/services/mlEngine";
+import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,7 @@ export default async function DashboardPage() {
   const settlement = await generateSettlementReport();
   const ranking = await getSmartRankingReport();
   const ml = await generateModelReport();
+  const discovery = await getAutoDiscoveryReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
@@ -97,6 +99,10 @@ export default async function DashboardPage() {
       {[["ML status", ml.status], ["Samples ML", `${ml.totalSamples}/${ml.minimumSamples}`], ["Versao", ml.modelVersion ?? "INSUFFICIENT_REAL_DATA"], ["Accuracy", ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`], ["ROI backtest", ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`], ["Predicoes", ml.predictionsGenerated.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     {ml.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">ML ENGINE: INSUFFICIENT_REAL_DATA. {ml.blockReason ?? "Aguardando amostra minima real liquidada."}</div>}
+    <section className="card mt-6 overflow-hidden p-5">
+      <div className="mb-4 flex items-center justify-between"><div><p className="text-sm font-black uppercase tracking-[.14em]">Descobertas Automaticas</p><p className="mt-1 text-[10px] text-zinc-600">{discovery.totalTipsAnalyzed}/{discovery.minimumSample} tips reais liquidadas · {discovery.status}</p></div><Link href="/green-ai-report" className="text-[9px] font-black uppercase tracking-wider text-neon">Ver relatorio</Link></div>
+      <div className="grid gap-4 lg:grid-cols-3"><div><p className="label mb-3">Top padroes positivos</p>{discovery.positivePatterns.slice(0, 3).map((item) => <p key={`${item.patternType}-${item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}`} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}</b><span className="float-right text-neon">{item.roi.toFixed(2)}%</span><span className="mt-1 block text-[10px] text-zinc-600">{item.status} · n={item.sampleSize}</span></p>) || null}</div><div><p className="label mb-3">Padroes negativos</p>{discovery.negativePatterns.slice(0, 3).map((item) => <p key={`${item.patternType}-${item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}`} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}</b><span className="float-right text-red-400">{item.roi.toFixed(2)}%</span><span className="mt-1 block text-[10px] text-zinc-600">{item.status} · n={item.sampleSize}</span></p>)}</div><div><p className="label mb-3">Recomendacoes</p>{discovery.recommendations.slice(0, 3).map((item) => <p key={item.title} className="mb-2 rounded-lg border border-line p-3 text-xs"><b>{item.title}</b><span className="mt-1 block text-[10px] text-zinc-600">{item.reason}</span></p>)}</div></div>
+    </section>
     <div className="mt-6 grid gap-6 xl:grid-cols-2">
       <RankingTable title="Top Mercados" items={ranking.topMarkets} labelFor={(item) => `${item.market ?? "-"} · ${item.oddRange ?? "-"}`}/>
       <RankingTable title="Top Competicoes" items={ranking.topCompetitions} labelFor={(item) => `${item.competition ?? "-"} · ${item.oddRange ?? "-"}`}/>

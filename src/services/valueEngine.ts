@@ -3,6 +3,7 @@ import type { ValueAudit, ValueClassification, ValueOpportunity, ValueReport, Va
 import { oddRange } from "./settlementEngine";
 import { classifyBySmartConfidence } from "./smartConfidenceEngine";
 import { predictOutcomeProbability } from "./mlEngine";
+import { getDiscoveryBlock } from "./autoDiscoveryEngine";
 
 export const MINIMUM_REAL_HISTORY = 30;
 export const ENTRY_EDGE = 0.03;
@@ -53,13 +54,14 @@ function classifyValue(edge: number | null, sample: number, smart: { confidenceS
   return "WATCH";
 }
 
-function statusFor(item: { edge: number | null; ev: number | null; confidence: number; risk: ValueRisk; sample: number; classification: ValueClassification }) {
+function statusFor(item: { edge: number | null; ev: number | null; confidence: number; risk: ValueRisk; sample: number; classification: ValueClassification; discoveryBlockReason?: string | null }) {
   const rejectionReasons: string[] = [];
   if (item.sample < MINIMUM_REAL_HISTORY) rejectionReasons.push("INSUFFICIENT_REAL_DATA");
   if (item.edge == null || item.edge <= ENTRY_EDGE) rejectionReasons.push("EDGE_BELOW_THRESHOLD");
   if (item.ev == null || item.ev <= ENTRY_EV) rejectionReasons.push("EV_BELOW_THRESHOLD");
   if (item.confidence < ENTRY_CONFIDENCE) rejectionReasons.push("CONFIDENCE_BELOW_MINIMUM");
   if (item.risk === "ALTO") rejectionReasons.push("HIGH_RISK");
+  if (item.discoveryBlockReason) rejectionReasons.push(item.discoveryBlockReason);
   if (item.classification === "NO BET") rejectionReasons.push("NO_POSITIVE_EDGE");
   if (item.classification === "WATCH") {
     return { status: item.sample < MINIMUM_REAL_HISTORY ? "INSUFFICIENT_REAL_DATA" as const : "WATCH" as const, rejectionReasons };
@@ -260,8 +262,10 @@ export async function buildValueReport(): Promise<ValueReport> {
     const edge = estimatedProbability == null ? null : estimatedProbability - fairProbability;
     const ev = estimatedProbability == null ? null : estimatedProbability * snapshot.odd - 1;
     const risk = classifyRisk(edge, margin.bookmakerMargin, probabilitySample);
-    const classification = classifyValue(edge, probabilitySample, smartConfidence);
-    const status = statusFor({ edge, ev, confidence, risk, sample: probabilitySample, classification });
+    const discovery = await getDiscoveryBlock({ market: snapshot.market, provider, bookmaker: snapshot.provider, oddRange: oddRange(snapshot.odd) });
+    const rawClassification = classifyValue(edge, probabilitySample, smartConfidence);
+    const classification = discovery.blocked && (rawClassification === "GREEN FORTE" || rawClassification === "ELITE GREEN" || rawClassification === "DIAMANTE") ? "WATCH" : rawClassification;
+    const status = statusFor({ edge, ev, confidence, risk, sample: probabilitySample, classification, discoveryBlockReason: discovery.reason });
     for (const reason of status.rejectionReasons) increment(rejectionReasons, reason);
     const score = Math.round(Math.min(100, Math.max(0, pctScore(edge) * 4 + pctScore(ev) * 2 + history.confidence * 0.35 - margin.bookmakerMargin * 100)));
 
@@ -304,6 +308,8 @@ export async function buildValueReport(): Promise<ValueReport> {
       smartConfidenceScore: smartConfidence.confidenceScore,
       smartConfidenceStatus: smartConfidence.status,
       smartConfidenceSampleSize: smartConfidence.sampleSize,
+      discoveryStatus: discovery.status,
+      discoveryBlockReason: discovery.reason,
       settlementBlockReason: performance.blockReason,
       probabilitySource: history.source,
       analyzedAt,

@@ -4,13 +4,14 @@ import { getModelPerformance } from "@/services/modelTrainingService";
 import { buildValueReport } from "@/services/valueEngine";
 import { generateSettlementReport } from "@/services/settlementEngine";
 import { generateModelReport } from "@/services/mlEngine";
+import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 
 export const dynamic = "force-dynamic";
 
 const metric = (value: number | null | undefined) => value == null ? "—" : `${value.toFixed(2)}%`;
 
 export default async function ModelPerformancePage() {
-  const [data, valueReport, settlement, ml] = await Promise.all([getModelPerformance(), buildValueReport(), generateSettlementReport(), generateModelReport()]);
+  const [data, valueReport, settlement, ml, discovery] = await Promise.all([getModelPerformance(), buildValueReport(), generateSettlementReport(), generateModelReport(), getAutoDiscoveryReport()]);
   const current = data.current;
   const cards = [
     ["Dataset size", data.status.records.toString(), Database], ["Accuracy", metric(current?.accuracy), Target], ["Precision", metric(current?.precision), ShieldCheck], ["Recall", metric(current?.recall), Activity], ["ROI", metric(current?.roi), BarChart3], ["Yield", metric(current?.yield), BarChart3], ["Win Rate", metric(current?.winRate), BrainCircuit],
@@ -20,6 +21,9 @@ export default async function ModelPerformancePage() {
     <div className="mb-7"><p className="label mb-2 text-neon">Validação temporal</p><h1 className="text-3xl font-black tracking-tight md:text-4xl">Model Performance</h1><p className="mt-2 max-w-3xl text-sm text-zinc-500">Métricas calculadas somente no conjunto de teste futuro, preservando a divisão cronológica 70% treino, 15% validação e 15% teste.</p></div>
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
       {[["ML status", ml.status], ["TotalSamples", `${ml.totalSamples}/${ml.minimumSamples}`], ["Ultima execucao", ml.lastRunAt ?? "INSUFFICIENT_REAL_DATA"], ["Accuracy", ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`], ["WinRate backtest", ml.winRateBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.winRateBacktest.toFixed(2)}%`], ["ROI backtest", ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      {[["Discovery", discovery.status], ["Tips analisadas", `${discovery.totalTipsAnalyzed}/${discovery.minimumSample}`], ["Padroes", discovery.patternsFound.toString()], ["Recomendacoes", discovery.recommendationsGenerated.toString()], ["Bloqueio", discovery.blockReason ?? "OK"]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     {ml.status === "INSUFFICIENT_REAL_DATA" && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-5"><b className="text-amber-300">ML baseline bloqueado</b><p className="mt-2 text-xs text-zinc-400">{ml.blockReason ?? "Aguardando amostra minima real liquidada."} Nenhum modelo e treinado com historico fake.</p></div>}
     {!data.status.eligible && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-5"><b className="text-amber-300">Dados insuficientes para treinamento</b><p className="mt-2 text-xs text-zinc-400">{data.status.records} de {data.status.minimum} tips liquidadas WON/LOST. Nenhuma métrica de modelo foi estimada.</p></div>}

@@ -5,13 +5,14 @@ import { getWorldCupOdds } from "@/services/oddsApi";
 import { buildValueReport } from "@/services/valueEngine";
 import { getSmartConfidenceReport } from "@/services/smartConfidenceEngine";
 import { generateModelReport } from "@/services/mlEngine";
+import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function OddsTodayPage() {
-  const [feed, valueReport, confidence, ml] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport()]);
+  const [feed, valueReport, confidence, ml, discovery] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport()]);
   const preGameValues = [...valueReport.entries, ...valueReport.watchlist].filter((item) => item.matchStatus === "PRE_GAME");
   return <>
     <PageTitle eyebrow="Pre-jogo" title="Odds do dia" description="Partidas do provider ativo e analise estatistica baseada somente em odds reais persistidas." action={<button className="flex items-center gap-2 rounded-xl border border-line bg-white/[.03] px-5 py-3 text-xs font-bold"><SlidersHorizontal size={15}/> Ajustar filtros</button>}/>
@@ -32,6 +33,12 @@ export default async function OddsTodayPage() {
       <StatCard label="Accuracy ML" value={ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`} detail={ml.modelVersion ?? "sem modelo"} tone="yellow"/>
       <StatCard label="ROI backtest" value={ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`} detail="sem promessa de lucro"/>
       <StatCard label="Predicoes ML" value={ml.predictionsGenerated.toString()} detail="persistidas"/>
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <StatCard label="Discovery" value={discovery.status} detail={`${discovery.totalTipsAnalyzed}/${discovery.minimumSample} liquidadas reais`}/>
+      <StatCard label="Padroes" value={discovery.patternsFound.toString()} detail="somente liquidados" tone="white"/>
+      <StatCard label="Negativos" value={discovery.negativePatterns.length.toString()} detail="bloqueios operacionais" tone="yellow"/>
+      <StatCard label="Recomendacoes" value={discovery.recommendationsGenerated.toString()} detail="sem promessa de lucro"/>
     </section>
     <section className="card mt-6 overflow-hidden">
       <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Confidence por historico real</p><p className="mt-1 text-[10px] text-zinc-600">Win rate, ROI, drawdown e sampleSize liberados somente com 30 liquidacoes reais</p></div>

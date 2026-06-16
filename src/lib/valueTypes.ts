@@ -41,6 +41,8 @@ export interface ValueOpportunity {
   smartConfidenceScore?: number | null;
   smartConfidenceStatus?: string;
   smartConfidenceSampleSize?: number;
+  discoveryStatus?: string | null;
+  discoveryBlockReason?: string | null;
   settlementBlockReason?: string;
   probabilitySource: "SELECTION" | "MARKET";
   analyzedAt: string;
