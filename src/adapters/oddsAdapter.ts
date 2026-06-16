@@ -83,7 +83,7 @@ export function normalizeOddsApiEvent(event: OddsApiEvent): NormalizedOddsEvent 
     game: {
       id: event.id,
       competition: event.sport_title,
-      group: "Copa 2026",
+      group: event.sport_title,
       time: startsAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
       home: event.home_team,
       away: event.away_team,

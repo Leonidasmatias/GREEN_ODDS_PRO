@@ -1,10 +1,48 @@
-import { games as mockGames } from "@/data/mockData";
 import type { Game } from "@/lib/types";
+import type { AnalyzedOpportunity, GreenClassification, Risk, Signal } from "@/lib/types";
 import type { NormalizedOddsEvent } from "@/adapters/oddsAdapter";
 import { getProviderLiveFeed, getProviderResults } from "@/providers/providerManager";
 import { redactSecrets } from "./securityService";
 
-export interface OddsFeedResult { mode: "REAL" | "MOCK"; provider: string; events: NormalizedOddsEvent[]; games: Game[]; warning?: string; requestsRemaining?: number }
+export interface OddsFeedResult { mode: "REAL"; provider: string; events: NormalizedOddsEvent[]; games: Game[]; warning?: string; requestsRemaining?: number; updatedAt: string }
+
+function classifyOdd(odd: number): { risk: Risk; signal: Signal; classification: GreenClassification; score: number } {
+  if (odd <= 0) return { risk: "Alto", signal: "Evitar", classification: "EVITAR", score: 0 };
+  if (odd <= 1.75) return { risk: "Baixo", signal: "Aguardar", classification: "MODERADO", score: 62 };
+  if (odd <= 2.8) return { risk: "Médio", signal: "Aguardar", classification: "MODERADO", score: 70 };
+  return { risk: "Alto", signal: "Aguardar", classification: "MODERADO", score: 58 };
+}
+
+export function opportunitiesFromFeed(feed: OddsFeedResult): AnalyzedOpportunity[] {
+  return feed.events.flatMap((event) => {
+    const h2h = event.snapshots.filter((snapshot) => snapshot.market.toLowerCase().includes("h2h") || snapshot.market.toLowerCase().includes("winner"));
+    return h2h.filter((snapshot) => snapshot.odd > 1).map((snapshot) => {
+      const impliedProbability = 1 / snapshot.odd;
+      const estimatedProbability = impliedProbability;
+      const edge = 0;
+      const expectedValue = estimatedProbability * snapshot.odd - 1;
+      const classification = classifyOdd(snapshot.odd);
+      return {
+        id: `${snapshot.providerEventId}-${snapshot.market}-${snapshot.selection}`,
+        game: `${event.homeTeam} x ${event.awayTeam}`,
+        market: snapshot.market,
+        pick: snapshot.selection,
+        odd: snapshot.odd,
+        fairProbability: estimatedProbability,
+        confidence: classification.score,
+        context: { form: 0, attack: 0, defense: 0, timing: 0, stats: 0 },
+        impliedProbability,
+        edge,
+        expectedValue,
+        risk: classification.risk,
+        signal: classification.signal,
+        score: classification.score,
+        classification: classification.classification,
+        powerRating: classification.score,
+      };
+    });
+  });
+}
 
 export async function getWorldCupOdds(): Promise<OddsFeedResult> {
   try {
@@ -40,9 +78,9 @@ export async function getWorldCupOdds(): Promise<OddsFeedResult> {
         snapshots: odds.map((odd) => ({ providerEventId: odd.providerEventId, market: odd.market, selection: odd.selection, odd: odd.odd, provider: odd.bookmaker, capturedAt: odd.capturedAt })),
       };
     });
-    return { mode: feed.provider.licensed ? "REAL" : "MOCK", provider: feed.provider.id, events, games: events.map((event) => event.game), warning: feed.failoverErrors.join(" | ") || undefined, requestsRemaining: feed.remainingLimit };
+    return { mode: "REAL", provider: feed.provider.id, events, games: events.map((event) => event.game), warning: feed.failoverErrors.join(" | ") || undefined, requestsRemaining: feed.remainingLimit, updatedAt: new Date().toISOString() };
   } catch (error) {
-    return { mode: "MOCK", provider: "none", events: [], games: process.env.NODE_ENV === "production" ? [] : mockGames, warning: redactSecrets(error instanceof Error ? error.message : "Providers indisponiveis") };
+    return { mode: "REAL", provider: "none", events: [], games: [], warning: redactSecrets(error instanceof Error ? error.message : "Providers indisponiveis"), updatedAt: new Date().toISOString() };
   }
 }
 

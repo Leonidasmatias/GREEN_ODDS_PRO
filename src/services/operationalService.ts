@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { worldCupOpportunities } from "@/lib/worldCupEngine";
 
 const DAY = 24 * 60 * 60 * 1000;
 const MOVEMENT_ALERT_LIMIT = 5;
@@ -75,12 +74,8 @@ async function getMovements(limit = 20) {
 
 async function getTopOpportunities() {
   const tips = await prisma.tip.findMany({ where: { status: "PENDING" }, orderBy: [{ expectedValue: "desc" }, { confidenceScore: "desc" }], take: 20 });
-  if (!tips.length && process.env.NODE_ENV !== "production") return worldCupOpportunities.slice(0, 20).map((item) => ({ id: item.id, game: item.game, market: item.market, selection: item.pick, odd: item.odd, ev: round(item.expectedValue * 100), score: round(item.score, 1), powerRating: round(item.powerRating, 1), risk: item.risk, status: item.classification }));
   if (!tips.length) return [];
-  return tips.map((tip) => {
-    const model = worldCupOpportunities.find((item) => item.game === tip.gameLabel && item.pick === tip.selection);
-    return { id: tip.id, game: tip.gameLabel, market: tip.market, selection: tip.selection, odd: tip.odd, ev: round(tip.expectedValue * 100), score: round(tip.confidenceScore, 1), powerRating: round(model?.powerRating ?? tip.confidenceScore, 1), risk: tip.risk, status: tip.classification };
-  });
+  return tips.map((tip) => ({ id: tip.id, game: tip.gameLabel, market: tip.market, selection: tip.selection, odd: tip.odd, ev: round(tip.expectedValue * 100), score: round(tip.confidenceScore, 1), powerRating: round(tip.confidenceScore, 1), risk: tip.risk, status: tip.classification }));
 }
 
 export async function getAlerts() {
