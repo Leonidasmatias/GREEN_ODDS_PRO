@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { ValueAudit, ValueClassification, ValueOpportunity, ValueReport, ValueRisk } from "@/lib/valueTypes";
 import { oddRange } from "./settlementEngine";
+import { classifyBySmartConfidence } from "./smartConfidenceEngine";
 
 export const MINIMUM_REAL_HISTORY = 30;
 export const ENTRY_EDGE = 0.03;
@@ -41,11 +42,13 @@ function classifyRisk(edge: number | null, margin: number, sample: number): Valu
   return "ALTO";
 }
 
-function classifyValue(edge: number | null, confidence: number, risk: ValueRisk, sample: number, eliteEligible: boolean): ValueClassification {
+function classifyValue(edge: number | null, sample: number, smart: { confidenceScore: number; roi: number; sampleSize: number; status: string }): ValueClassification {
   if (edge == null || sample < MINIMUM_REAL_HISTORY) return "WATCH";
   if (edge <= 0) return "NO BET";
-  if (edge >= 0.08 && risk === "BAIXO" && confidence >= 75 && eliteEligible) return "ELITE GREEN";
-  if (edge >= 0.03) return "GREEN FORTE";
+  const smartClass = classifyBySmartConfidence(smart);
+  if (smartClass === "DIAMANTE") return "DIAMANTE";
+  if (smartClass === "ELITE GREEN") return "ELITE GREEN";
+  if (smartClass === "GREEN FORTE") return "GREEN FORTE";
   return "WATCH";
 }
 
@@ -128,6 +131,14 @@ async function getMarketPerformance(input: { market: string; selection: string; 
   const eliteEligible = row.totalEntries >= 30 && row.winRate > input.impliedProbability && row.roi > 0 && drawdownControlled && isRealProvider(input.provider);
   const blockReason = eliteEligible ? undefined : row.totalEntries < 30 ? "INSUFFICIENT_REAL_MARKET_SAMPLE" : row.winRate <= input.impliedProbability ? "WINRATE_BELOW_IMPLIED_PROBABILITY" : row.roi <= 0 ? "REAL_ROI_NOT_POSITIVE" : !drawdownControlled ? "DRAWDOWN_NOT_CONTROLLED" : "NO_ACTIVE_REAL_PROVIDER";
   return { sample: row.totalEntries, winRate: row.winRate, roi: row.roi, maxDrawdown: row.maxDrawdown, eliteEligible, blockReason };
+}
+
+async function getSmartConfidence(input: { market: string; provider: string; bookmaker: string }) {
+  const row = await prisma.marketConfidence.findUnique({
+    where: { market_provider_bookmaker: { market: input.market, provider: input.provider, bookmaker: input.bookmaker } },
+  }).catch(() => null);
+  if (!row) return { sampleSize: 0, confidenceScore: 0, roi: 0, status: "INSUFFICIENT_REAL_DATA" };
+  return { sampleSize: row.sampleSize, confidenceScore: row.confidenceScore, roi: row.roi, status: row.status };
 }
 
 function latestMarketMargins(odds: PersistedOdd[]) {
@@ -231,10 +242,11 @@ export async function buildValueReport(): Promise<ValueReport> {
     const fairOdd = fairProbability > 0 ? 1 / fairProbability : 0;
     const history = await estimateProbability(snapshot.market, snapshot.selection);
     const performance = await getMarketPerformance({ market: snapshot.market, selection: snapshot.selection, provider, bookmaker: snapshot.provider, competition: snapshot.match.competition, odd: snapshot.odd, impliedProbability });
+    const smartConfidence = await getSmartConfidence({ market: snapshot.market, provider, bookmaker: snapshot.provider });
     const edge = history.estimatedProbability == null ? null : history.estimatedProbability - fairProbability;
     const ev = history.estimatedProbability == null ? null : history.estimatedProbability * snapshot.odd - 1;
     const risk = classifyRisk(edge, margin.bookmakerMargin, history.sample);
-    const classification = classifyValue(edge, history.confidence, risk, history.sample, performance.eliteEligible);
+    const classification = classifyValue(edge, history.sample, smartConfidence);
     const status = statusFor({ edge, ev, confidence: history.confidence, risk, sample: history.sample, classification });
     for (const reason of status.rejectionReasons) increment(rejectionReasons, reason);
     const score = Math.round(Math.min(100, Math.max(0, pctScore(edge) * 4 + pctScore(ev) * 2 + history.confidence * 0.35 - margin.bookmakerMargin * 100)));
@@ -271,6 +283,9 @@ export async function buildValueReport(): Promise<ValueReport> {
       marketWinRate: performance.winRate,
       marketRoi: performance.roi,
       marketMaxDrawdown: performance.maxDrawdown,
+      smartConfidenceScore: smartConfidence.confidenceScore,
+      smartConfidenceStatus: smartConfidence.status,
+      smartConfidenceSampleSize: smartConfidence.sampleSize,
       settlementBlockReason: performance.blockReason,
       probabilitySource: history.source,
       analyzedAt,

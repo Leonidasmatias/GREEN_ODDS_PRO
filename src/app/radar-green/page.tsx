@@ -9,7 +9,11 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateSty
 
 export default async function RadarPage() {
   const report = await buildValueReport();
-  const validatedGreens = report.entries.filter((item) => (item.classification === "GREEN FORTE" || item.classification === "ELITE GREEN") && item.historicalSample >= 30 && item.marketSample >= 30);
+  const validatedGreens = report.entries.filter((item) => (
+    item.classification === "GREEN FORTE" ||
+    item.classification === "ELITE GREEN" ||
+    item.classification === "DIAMANTE"
+  ) && item.smartConfidenceStatus === "READY" && (item.smartConfidenceScore ?? 0) >= 80 && item.historicalSample >= 30 && item.marketSample >= 30);
   return <>
     <PageTitle eyebrow="Provider ativo" title="Radar de Odds Green" description="Mercados construidos exclusivamente a partir de odds reais persistidas do provider licenciado ativo."/>
     <ValueAuditSummary {...report.audit}/>
@@ -27,7 +31,7 @@ export default async function RadarPage() {
       <ValueOpportunityTable items={validatedGreens}/>
     </section>
     <div className="mt-4 flex gap-3 rounded-xl border border-line bg-white/[.02] p-4 text-xs leading-relaxed text-zinc-500">
-      <Info size={17} className="shrink-0 text-neon"/> O Radar exibe somente GREEN FORTE e ELITE GREEN com historico real suficiente. Sem amostra minima liquidada, o mercado permanece INSUFFICIENT_REAL_DATA e nenhuma entrada green e forcada.
+      <Info size={17} className="shrink-0 text-neon"/> O Radar exibe somente GREEN FORTE, ELITE GREEN e DIAMANTE com confidence real suficiente. Sem 30 liquidacoes reais, o mercado permanece INSUFFICIENT_REAL_DATA e nenhuma entrada green e forcada.
     </div>
   </>;
 }

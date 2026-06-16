@@ -1,5 +1,5 @@
 export type ValueRisk = "BAIXO" | "MEDIO" | "ALTO" | "INDEFINIDO";
-export type ValueClassification = "NO BET" | "WATCH" | "GREEN FORTE" | "ELITE GREEN";
+export type ValueClassification = "NO BET" | "WATCH" | "GREEN FORTE" | "ELITE GREEN" | "DIAMANTE";
 export type ValueStatus = "APPROVED" | "REJECTED" | "WATCH" | "INSUFFICIENT_REAL_DATA";
 
 export interface ValueOpportunity {
@@ -34,6 +34,9 @@ export interface ValueOpportunity {
   marketWinRate: number | null;
   marketRoi: number | null;
   marketMaxDrawdown: number | null;
+  smartConfidenceScore?: number | null;
+  smartConfidenceStatus?: string;
+  smartConfidenceSampleSize?: number;
   settlementBlockReason?: string;
   probabilitySource: "SELECTION" | "MARKET";
   analyzedAt: string;

@@ -8,6 +8,7 @@ const classificationStyle: Record<ValueOpportunity["classification"], string> = 
   WATCH: "border-amber-400/25 bg-amber-400/10 text-amber-300",
   "GREEN FORTE": "border-neon/25 bg-neon/10 text-neon",
   "ELITE GREEN": "border-gold/30 bg-gold/10 text-gold",
+  DIAMANTE: "border-cyan-300/30 bg-cyan-300/10 text-cyan-200",
 };
 
 const riskStyle: Record<ValueOpportunity["risk"], string> = {
@@ -31,7 +32,7 @@ export function ValueOpportunityTable({ items, empty = "Nenhuma entrada green va
         <td className={(item.edge ?? 0) > 0 ? "font-black text-neon" : item.edge == null ? "text-amber-300" : "text-red-400"}>{pct(item.edge)}</td>
         <td className={(item.expectedValue ?? 0) > 0 ? "font-black text-neon" : item.expectedValue == null ? "text-amber-300" : "text-red-400"}>{pct(item.expectedValue)}</td>
         <td>{item.confidence}%</td>
-        <td><span className="block font-black text-white">{item.marketSample}</span><span className="text-[9px] text-zinc-600">{item.settlementBlockReason ?? "OK"}</span></td>
+        <td><span className="block font-black text-white">{item.marketSample}</span><span className="text-[9px] text-zinc-600">{item.smartConfidenceStatus ?? item.settlementBlockReason ?? "OK"}</span>{item.smartConfidenceScore != null && <span className="mt-1 block text-[9px] text-cyan-200">Conf {item.smartConfidenceScore.toFixed(0)} · n={item.smartConfidenceSampleSize ?? 0}</span>}</td>
         <td className={(item.marketRoi ?? 0) > 0 ? "text-neon" : "text-zinc-500"}>{item.marketRoi == null ? "INSUFFICIENT_REAL_DATA" : `${item.marketRoi.toFixed(2)}%`}</td>
         <td className={`font-black ${riskStyle[item.risk]}`}>{item.risk}</td>
         <td>{item.score}/100</td>

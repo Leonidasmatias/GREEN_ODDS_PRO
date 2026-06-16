@@ -3,13 +3,14 @@ import { PageTitle, StatCard } from "@/components/ui";
 import { ValueOpportunityTable } from "@/components/ValueOpportunityTable";
 import { getWorldCupOdds } from "@/services/oddsApi";
 import { buildValueReport } from "@/services/valueEngine";
+import { getSmartConfidenceReport } from "@/services/smartConfidenceEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function OddsTodayPage() {
-  const [feed, valueReport] = await Promise.all([getWorldCupOdds(), buildValueReport()]);
+  const [feed, valueReport, confidence] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport()]);
   const preGameValues = [...valueReport.entries, ...valueReport.watchlist].filter((item) => item.matchStatus === "PRE_GAME");
   return <>
     <PageTitle eyebrow="Pre-jogo" title="Odds do dia" description="Partidas do provider ativo e analise estatistica baseada somente em odds reais persistidas." action={<button className="flex items-center gap-2 rounded-xl border border-line bg-white/[.03] px-5 py-3 text-xs font-bold"><SlidersHorizontal size={15}/> Ajustar filtros</button>}/>
@@ -18,6 +19,16 @@ export default async function OddsTodayPage() {
       <StatCard label="Odds analisadas" value={valueReport.audit.analyzed.toString()} detail="value engine" tone="white"/>
       <StatCard label="Ultima analise" value={formatDate(valueReport.updatedAt)} detail="dados persistidos" tone="yellow"/>
     </div>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <StatCard label="Smart Confidence" value={confidence.status} detail={`${confidence.sourceRows}/${confidence.minimumSample} liquidacoes reais`} tone="white"/>
+      <StatCard label="MarketConfidence" value={(confidence.topMarkets[0]?.confidenceScore ?? 0).toFixed(0)} detail={confidence.topMarkets[0]?.market ?? "INSUFFICIENT_REAL_DATA"}/>
+      <StatCard label="BookmakerConfidence" value={(confidence.topBookmakers[0]?.confidenceScore ?? 0).toFixed(0)} detail={confidence.topBookmakers[0]?.bookmaker ?? "INSUFFICIENT_REAL_DATA"} tone="yellow"/>
+      <StatCard label="OddRangeConfidence" value={(confidence.topOddRanges[0]?.confidenceScore ?? 0).toFixed(0)} detail={confidence.topOddRanges[0]?.oddRange ?? "INSUFFICIENT_REAL_DATA"} tone="white"/>
+    </section>
+    <section className="card mt-6 overflow-hidden">
+      <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Confidence por historico real</p><p className="mt-1 text-[10px] text-zinc-600">Win rate, ROI, drawdown e sampleSize liberados somente com 30 liquidacoes reais</p></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Dimensao</th><th>Amostra</th><th>Win Rate</th><th>ROI</th><th>Drawdown</th><th>Score</th><th>Status</th></tr></thead><tbody>{confidence.topMarkets.length ? confidence.topMarkets.map((item) => <tr key={item.id} className="border-b border-line/60"><td className="px-5 py-4 font-black">{item.market}<span className="block text-[10px] text-zinc-600">{item.provider} · {item.bookmaker}</span></td><td>{item.sampleSize}</td><td>{(item.winRate * 100).toFixed(1)}%</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.drawdown.toFixed(2)}u</td><td>{item.confidenceScore.toFixed(0)}/100</td><td>{item.status}</td></tr>) : <tr><td colSpan={7} className="px-5 py-10 text-center text-zinc-600">INSUFFICIENT_REAL_DATA</td></tr>}</tbody></table></div>
+    </section>
     <section className="card mt-6 overflow-hidden p-5 md:p-6">
       <div className="mb-4 flex items-center justify-between">
         <div>

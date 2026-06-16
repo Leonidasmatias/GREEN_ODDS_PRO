@@ -241,6 +241,99 @@ model BookmakerRanking {
   @@map("bookmaker_rankings")
 }
 
+model MarketConfidence {
+  id              String   @id @default(cuid())
+  market          String
+  provider        String
+  bookmaker       String
+  sampleSize      Int      @default(0)
+  totalTips       Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  drawdown        Float    @default(0)
+  confidenceScore Float    @default(0)
+  status          String   @default("INSUFFICIENT_REAL_DATA")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([market, provider, bookmaker])
+  @@index([confidenceScore, roi])
+  @@map("market_confidence")
+}
+
+model CompetitionConfidence {
+  id              String   @id @default(cuid())
+  competition     String
+  provider        String
+  sampleSize      Int      @default(0)
+  totalTips       Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  drawdown        Float    @default(0)
+  confidenceScore Float    @default(0)
+  status          String   @default("INSUFFICIENT_REAL_DATA")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([competition, provider])
+  @@index([confidenceScore, roi])
+  @@map("competition_confidence")
+}
+
+model BookmakerConfidence {
+  id              String   @id @default(cuid())
+  bookmaker       String
+  provider        String
+  sampleSize      Int      @default(0)
+  totalTips       Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  drawdown        Float    @default(0)
+  confidenceScore Float    @default(0)
+  status          String   @default("INSUFFICIENT_REAL_DATA")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([bookmaker, provider])
+  @@index([confidenceScore, roi])
+  @@map("bookmaker_confidence")
+}
+
+model OddRangeConfidence {
+  id              String   @id @default(cuid())
+  oddRange        String
+  provider        String
+  sampleSize      Int      @default(0)
+  totalTips       Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  drawdown        Float    @default(0)
+  confidenceScore Float    @default(0)
+  status          String   @default("INSUFFICIENT_REAL_DATA")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([oddRange, provider])
+  @@index([confidenceScore, roi])
+  @@map("odd_range_confidence")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String

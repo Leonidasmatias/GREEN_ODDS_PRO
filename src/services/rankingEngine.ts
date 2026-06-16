@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { oddRange } from "./settlementEngine";
+import { getSmartConfidenceReport } from "./smartConfidenceEngine";
 
 const MIN_REAL_SAMPLE = 30;
 
@@ -161,7 +162,7 @@ export async function refreshSmartRankings() {
 }
 
 export async function getSmartRankingReport() {
-  const refreshed = await refreshSmartRankings();
+  const [refreshed, smartConfidence] = await Promise.all([refreshSmartRankings(), getSmartConfidenceReport()]);
   const persisted = await readPersistedRankings();
   const topMarkets = sortReady(persisted.markets, "confidenceScore").slice(0, 8);
   const topCompetitions = sortReady(persisted.competitions, "confidenceScore").slice(0, 8);
@@ -176,6 +177,7 @@ export async function getSmartRankingReport() {
     topBookmakers,
     topRoi: sortReady(allReady, "roi").slice(0, 8),
     topWinRate: sortReady(allReady, "winRate").slice(0, 8),
+    smartConfidence,
     generatedAt: new Date().toISOString(),
   };
 }

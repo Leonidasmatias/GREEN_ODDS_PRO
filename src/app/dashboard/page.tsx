@@ -31,10 +31,32 @@ type RankingRow = {
   status?: string;
 };
 
+type ConfidenceRow = {
+  id?: string;
+  market?: string;
+  competition?: string;
+  bookmaker?: string;
+  oddRange?: string;
+  provider?: string;
+  sampleSize: number;
+  winRate: number;
+  roi: number;
+  drawdown: number;
+  confidenceScore: number;
+  status: string;
+};
+
 function RankingTable({ title, items, labelFor }: { title: string; items: RankingRow[]; labelFor: (item: RankingRow) => string }) {
   return <section className="card overflow-hidden">
     <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-[.14em]">{title}</p><p className="mt-1 text-[10px] text-zinc-600">Somente resultados reais liquidados</p></div>
     <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Ranking</th><th>Tips</th><th>Win Rate</th><th>ROI</th><th>Profit</th><th>Drawdown</th><th>Confianca</th></tr></thead><tbody>{items.length ? items.map((item, index) => <tr key={item.id ?? `${title}-${index}`} className="border-b border-line/60"><td className="px-5 py-4"><b className="block">{labelFor(item)}</b><span className="text-[10px] text-zinc-600">{item.provider ?? "-"}</span></td><td>{item.totalTips}</td><td>{(item.winRate * 100).toFixed(1)}%</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.profit.toFixed(2)}u</td><td>{item.drawdown.toFixed(2)}u</td><td>{item.confidenceScore.toFixed(0)}/100</td></tr>) : <tr><td colSpan={7} className="px-5 py-10 text-center text-zinc-600">INSUFFICIENT_REAL_DATA</td></tr>}</tbody></table></div>
+  </section>;
+}
+
+function ConfidenceTable({ title, items, labelFor }: { title: string; items: ConfidenceRow[]; labelFor: (item: ConfidenceRow) => string }) {
+  return <section className="card overflow-hidden">
+    <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-[.14em]">{title}</p><p className="mt-1 text-[10px] text-zinc-600">Smart Confidence Engine · minimo 30 liquidacoes reais</p></div>
+    <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Dimensao</th><th>Amostra</th><th>Win Rate</th><th>ROI</th><th>Drawdown</th><th>Confidence</th><th>Status</th></tr></thead><tbody>{items.length ? items.map((item, index) => <tr key={item.id ?? `${title}-${index}`} className="border-b border-line/60"><td className="px-5 py-4"><b className="block">{labelFor(item)}</b><span className="text-[10px] text-zinc-600">{item.provider ?? "-"}</span></td><td>{item.sampleSize}</td><td>{(item.winRate * 100).toFixed(1)}%</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.drawdown.toFixed(2)}u</td><td>{item.confidenceScore.toFixed(0)}/100</td><td>{item.status}</td></tr>) : <tr><td colSpan={7} className="px-5 py-10 text-center text-zinc-600">INSUFFICIENT_REAL_DATA</td></tr>}</tbody></table></div>
   </section>;
 }
 
@@ -68,12 +90,19 @@ export default async function DashboardPage() {
       {[["Entradas pendentes", settlement.pending], ["Entradas liquidadas", settlement.settled], ["WinRate real", `${(settlement.winRate * 100).toFixed(1)}%`], ["ROI real", `${settlement.roi.toFixed(2)}%`], ["Lucro real", `${settlement.profit.toFixed(2)}u`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     {ranking.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">SMART RANKING: INSUFFICIENT_REAL_DATA. {ranking.sourceRows}/{ranking.minimumSample} resultados reais liquidados.</div>}
+    {ranking.smartConfidence.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">SMART CONFIDENCE: INSUFFICIENT_REAL_DATA. {ranking.smartConfidence.sourceRows}/{ranking.smartConfidence.minimumSample} resultados reais liquidados.</div>}
     <div className="mt-6 grid gap-6 xl:grid-cols-2">
       <RankingTable title="Top Mercados" items={ranking.topMarkets} labelFor={(item) => `${item.market ?? "-"} · ${item.oddRange ?? "-"}`}/>
       <RankingTable title="Top Competicoes" items={ranking.topCompetitions} labelFor={(item) => `${item.competition ?? "-"} · ${item.oddRange ?? "-"}`}/>
       <RankingTable title="Top Bookmakers" items={ranking.topBookmakers} labelFor={(item) => `${item.bookmaker ?? "-"} · ${item.oddRange ?? "-"}`}/>
       <RankingTable title="Top ROI" items={ranking.topRoi} labelFor={(item) => `${item.market ?? item.competition ?? item.bookmaker ?? "-"} · ${item.oddRange ?? "-"}`}/>
       <RankingTable title="Top Win Rate" items={ranking.topWinRate} labelFor={(item) => `${item.market ?? item.competition ?? item.bookmaker ?? "-"} · ${item.oddRange ?? "-"}`}/>
+    </div>
+    <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <ConfidenceTable title="MarketConfidence" items={ranking.smartConfidence.topMarkets} labelFor={(item) => item.market ?? "-"}/>
+      <ConfidenceTable title="CompetitionConfidence" items={ranking.smartConfidence.topCompetitions} labelFor={(item) => item.competition ?? "-"}/>
+      <ConfidenceTable title="BookmakerConfidence" items={ranking.smartConfidence.topBookmakers} labelFor={(item) => item.bookmaker ?? "-"}/>
+      <ConfidenceTable title="OddRangeConfidence" items={ranking.smartConfidence.topOddRanges} labelFor={(item) => item.oddRange ?? "-"}/>
     </div>
     <section className="card mt-7 overflow-hidden"><div className="flex items-center justify-between border-b border-line px-5 py-5"><div><p className="text-sm font-black uppercase tracking-[.14em]">Entradas green validadas</p><p className="mt-1 text-[10px] text-zinc-600">{oddsFeed.provider} · atualizado em {formatDate(oddsFeed.updatedAt)}</p></div><Link href="/radar-green" className="text-[9px] font-black uppercase tracking-wider text-neon">Abrir radar</Link></div><ValueOpportunityTable items={valueReport.entries}/></section>
 
