@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Activity, ArrowRight, CalendarDays, CircleDollarSign, Crosshair, History, Radio, TrendingUp } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { SectionHeader } from "@/components/ui";
 import { OddsTable } from "@/components/OddsTable";
 import { ValueAuditSummary, ValueOpportunityTable } from "@/components/ValueOpportunityTable";
 import { getWorldCupOdds } from "@/services/oddsApi";
 import { buildValueReport } from "@/services/valueEngine";
+import { generateSettlementReport } from "@/services/settlementEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -14,21 +14,16 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateSty
 export default async function DashboardPage() {
   const oddsFeed = await getWorldCupOdds();
   const valueReport = await buildValueReport();
-  const settledTips = await prisma.tip.findMany({ where: { status: { in: ["WON", "LOST"] } } });
-  const greenResults = settledTips.filter((item) => item.status === "WON").length;
-  const totalStake = settledTips.reduce((sum, item) => sum + item.stake, 0);
-  const accumulatedProfit = settledTips.reduce((sum, item) => sum + (item.profitLoss ?? 0), 0);
-  const roi = totalStake ? accumulatedProfit / totalStake * 100 : 0;
-  const hitRate = settledTips.length ? greenResults / settledTips.length * 100 : 0;
+  const settlement = await generateSettlementReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
     { label: "Jogos carregados", value: games.length.toString().padStart(2, "0"), detail: oddsFeed.provider, href: "/odds-do-dia", icon: CalendarDays, tone: "text-white" },
     { label: "Ao vivo", value: liveGames.toString().padStart(2, "0"), detail: "partidas do provider", href: "/live-monitor", icon: Radio, tone: "text-red-400" },
     { label: "Mercados", value: valueReport.audit.analyzed.toString().padStart(2, "0"), detail: "odds reais analisadas", href: "/radar-green", icon: Crosshair, tone: "text-gold" },
-    { label: "ROI acumulado", value: `${roi >= 0 ? "+" : ""}${roi.toFixed(1)}%`, detail: "tips liquidadas", href: "/performance", icon: TrendingUp, tone: "text-neon" },
-    { label: "Taxa de acerto", value: `${hitRate.toFixed(1)}%`, detail: `${greenResults} greens reais`, href: "/performance", icon: History, tone: "text-white" },
-    { label: "Lucro real", value: `${accumulatedProfit >= 0 ? "+" : ""}${accumulatedProfit.toFixed(2)}u`, detail: "resultado liquidado", href: "/performance", icon: CircleDollarSign, tone: "text-gold" },
+    { label: "ROI acumulado", value: `${settlement.roi >= 0 ? "+" : ""}${settlement.roi.toFixed(1)}%`, detail: `${settlement.settled} liquidadas reais`, href: "/performance", icon: TrendingUp, tone: "text-neon" },
+    { label: "Taxa de acerto", value: `${(settlement.winRate * 100).toFixed(1)}%`, detail: `${settlement.won} wins reais`, href: "/performance", icon: History, tone: "text-white" },
+    { label: "Lucro real", value: `${settlement.profit >= 0 ? "+" : ""}${settlement.profit.toFixed(2)}u`, detail: `${settlement.pending} pendentes`, href: "/performance", icon: CircleDollarSign, tone: "text-gold" },
   ];
 
   return <>
@@ -41,6 +36,9 @@ export default async function DashboardPage() {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">{overviewCards.map(({ label, value, detail, href, icon: Icon, tone }) => <Link href={href} key={label} className="card group p-5 transition hover:-translate-y-0.5 hover:border-neon/25"><div className="flex items-start justify-between"><div className="grid h-9 w-9 place-items-center rounded-xl bg-white/[.04] text-zinc-500 transition group-hover:bg-neon/10 group-hover:text-neon"><Icon size={17}/></div><ArrowRight size={14} className="text-zinc-700 transition group-hover:translate-x-0.5 group-hover:text-neon"/></div><p className="label mt-5">{label}</p><p className={`mt-2 text-3xl font-black tracking-tight ${tone}`}>{value}</p><p className="mt-1 text-[10px] text-zinc-600">{detail}</p></Link>)}</div>
 
     <section className="mt-7"><ValueAuditSummary {...valueReport.audit}/></section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      {[["Entradas pendentes", settlement.pending], ["Entradas liquidadas", settlement.settled], ["WinRate real", `${(settlement.winRate * 100).toFixed(1)}%`], ["ROI real", `${settlement.roi.toFixed(2)}%`], ["Lucro real", `${settlement.profit.toFixed(2)}u`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
     <section className="card mt-7 overflow-hidden"><div className="flex items-center justify-between border-b border-line px-5 py-5"><div><p className="text-sm font-black uppercase tracking-[.14em]">Entradas green validadas</p><p className="mt-1 text-[10px] text-zinc-600">{oddsFeed.provider} · atualizado em {formatDate(oddsFeed.updatedAt)}</p></div><Link href="/radar-green" className="text-[9px] font-black uppercase tracking-wider text-neon">Abrir radar</Link></div><ValueOpportunityTable items={valueReport.entries}/></section>
 
     <div className="mt-7 grid gap-6 xl:grid-cols-[1.65fr_.55fr]">

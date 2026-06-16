@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ValueAudit, ValueClassification, ValueOpportunity, ValueReport, ValueRisk } from "@/lib/valueTypes";
+import { oddRange } from "./settlementEngine";
 
 export const MINIMUM_REAL_HISTORY = 30;
 export const ENTRY_EDGE = 0.03;
@@ -40,10 +41,10 @@ function classifyRisk(edge: number | null, margin: number, sample: number): Valu
   return "ALTO";
 }
 
-function classifyValue(edge: number | null, confidence: number, risk: ValueRisk, sample: number): ValueClassification {
+function classifyValue(edge: number | null, confidence: number, risk: ValueRisk, sample: number, eliteEligible: boolean): ValueClassification {
   if (edge == null || sample < MINIMUM_REAL_HISTORY) return "WATCH";
   if (edge <= 0) return "NO BET";
-  if (edge >= 0.08 && risk === "BAIXO" && confidence >= 75) return "ELITE GREEN";
+  if (edge >= 0.08 && risk === "BAIXO" && confidence >= 75 && eliteEligible) return "ELITE GREEN";
   if (edge >= 0.03) return "GREEN FORTE";
   return "WATCH";
 }
@@ -109,6 +110,26 @@ async function estimateProbability(market: string, selection: string) {
   return { estimatedProbability, sample: usableRows.length, confidence, source };
 }
 
+async function getMarketPerformance(input: { market: string; selection: string; provider: string; bookmaker: string; competition: string; odd: number; impliedProbability: number }) {
+  const row = await prisma.marketPerformance.findUnique({
+    where: {
+      market_selection_sport_provider_bookmaker_oddRange: {
+        market: input.market,
+        selection: input.selection,
+        sport: input.competition,
+        provider: input.provider,
+        bookmaker: input.bookmaker,
+        oddRange: oddRange(input.odd),
+      },
+    },
+  }).catch(() => null);
+  if (!row) return { sample: 0, winRate: null, roi: null, maxDrawdown: null, eliteEligible: false, blockReason: "INSUFFICIENT_REAL_MARKET_SAMPLE" };
+  const drawdownControlled = row.maxDrawdown <= Math.max(3, Math.abs(row.profit) * 0.5 + 1);
+  const eliteEligible = row.totalEntries >= 30 && row.winRate > input.impliedProbability && row.roi > 0 && drawdownControlled && isRealProvider(input.provider);
+  const blockReason = eliteEligible ? undefined : row.totalEntries < 30 ? "INSUFFICIENT_REAL_MARKET_SAMPLE" : row.winRate <= input.impliedProbability ? "WINRATE_BELOW_IMPLIED_PROBABILITY" : row.roi <= 0 ? "REAL_ROI_NOT_POSITIVE" : !drawdownControlled ? "DRAWDOWN_NOT_CONTROLLED" : "NO_ACTIVE_REAL_PROVIDER";
+  return { sample: row.totalEntries, winRate: row.winRate, roi: row.roi, maxDrawdown: row.maxDrawdown, eliteEligible, blockReason };
+}
+
 function latestMarketMargins(odds: PersistedOdd[]) {
   const byMarket = new Map<string, PersistedOdd[]>();
   for (const odd of odds) byMarket.set(`${odd.matchId}:${odd.market}`, [...(byMarket.get(`${odd.matchId}:${odd.market}`) ?? []), odd]);
@@ -148,6 +169,49 @@ async function persistAnalysis(items: ValueOpportunity[]) {
   }).catch(() => undefined);
 }
 
+async function createPendingTips(items: ValueOpportunity[]) {
+  let created = 0;
+  for (const item of items) {
+    const existing = await prisma.tip.findFirst({
+      where: {
+        matchId: item.matchId,
+        market: item.market,
+        selection: item.selection,
+        provider: item.provider,
+        bookmaker: item.bookmaker,
+        status: "PENDING",
+      },
+      select: { id: true },
+    }).catch(() => null);
+    if (existing) continue;
+    await prisma.tip.create({
+      data: {
+        matchId: item.matchId,
+        gameLabel: item.game,
+        market: item.market,
+        selection: item.selection,
+        odd: item.odd,
+        provider: item.provider,
+        bookmaker: item.bookmaker,
+        impliedProbability: item.impliedProbability,
+        estimatedProbability: item.estimatedProbability ?? 0,
+        edge: item.edge ?? 0,
+        expectedValue: item.expectedValue ?? 0,
+        confidenceScore: item.confidence,
+        score: item.score,
+        classification: item.classification,
+        risk: item.risk,
+        status: "PENDING",
+        stakeSuggested: 1,
+        stake: 1,
+        rejectionReason: item.settlementBlockReason,
+      },
+    });
+    created += 1;
+  }
+  return created;
+}
+
 export async function buildValueReport(): Promise<ValueReport> {
   const analyzedAt = new Date().toISOString();
   const provider = await getActiveRealProvider();
@@ -166,10 +230,11 @@ export async function buildValueReport(): Promise<ValueReport> {
     const fairProbability = impliedProbability / denominator;
     const fairOdd = fairProbability > 0 ? 1 / fairProbability : 0;
     const history = await estimateProbability(snapshot.market, snapshot.selection);
+    const performance = await getMarketPerformance({ market: snapshot.market, selection: snapshot.selection, provider, bookmaker: snapshot.provider, competition: snapshot.match.competition, odd: snapshot.odd, impliedProbability });
     const edge = history.estimatedProbability == null ? null : history.estimatedProbability - fairProbability;
     const ev = history.estimatedProbability == null ? null : history.estimatedProbability * snapshot.odd - 1;
     const risk = classifyRisk(edge, margin.bookmakerMargin, history.sample);
-    const classification = classifyValue(edge, history.confidence, risk, history.sample);
+    const classification = classifyValue(edge, history.confidence, risk, history.sample, performance.eliteEligible);
     const status = statusFor({ edge, ev, confidence: history.confidence, risk, sample: history.sample, classification });
     for (const reason of status.rejectionReasons) increment(rejectionReasons, reason);
     const score = Math.round(Math.min(100, Math.max(0, pctScore(edge) * 4 + pctScore(ev) * 2 + history.confidence * 0.35 - margin.bookmakerMargin * 100)));
@@ -179,6 +244,7 @@ export async function buildValueReport(): Promise<ValueReport> {
       matchId: snapshot.matchId,
       oddsSnapshotId: snapshot.id,
       provider,
+      bookmaker: snapshot.provider,
       providerEventId: snapshot.match.providerId ?? "",
       competition: snapshot.match.competition,
       game: `${snapshot.match.homeTeam} x ${snapshot.match.awayTeam}`,
@@ -201,6 +267,11 @@ export async function buildValueReport(): Promise<ValueReport> {
       status: status.status,
       rejectionReasons: status.rejectionReasons,
       historicalSample: history.sample,
+      marketSample: performance.sample,
+      marketWinRate: performance.winRate,
+      marketRoi: performance.roi,
+      marketMaxDrawdown: performance.maxDrawdown,
+      settlementBlockReason: performance.blockReason,
       probabilitySource: history.source,
       analyzedAt,
     });
@@ -208,6 +279,7 @@ export async function buildValueReport(): Promise<ValueReport> {
 
   const entries = opportunities.filter((item) => item.status === "APPROVED");
   const watchlist = opportunities.filter((item) => item.status === "WATCH" || item.status === "INSUFFICIENT_REAL_DATA");
+  const tipsCreated = await createPendingTips(entries);
   const audit: ValueAudit = {
     provider,
     analyzed: opportunities.length,
@@ -215,6 +287,7 @@ export async function buildValueReport(): Promise<ValueReport> {
     approved: entries.length,
     watch: watchlist.length,
     insufficientRealData: opportunities.filter((item) => item.status === "INSUFFICIENT_REAL_DATA").length,
+    tipsCreated,
     rejectionReasons,
     generatedAt: analyzedAt,
   };
@@ -224,7 +297,7 @@ export async function buildValueReport(): Promise<ValueReport> {
     data: {
       category: "VALUE_ENGINE",
       status: entries.length ? "APPROVED" : "WATCH",
-      message: `${audit.analyzed} odds reais persistidas analisadas, ${audit.approved} aprovadas, ${audit.rejected} rejeitadas.`,
+      message: `${audit.analyzed} odds reais persistidas analisadas, ${audit.approved} aprovadas, ${tipsCreated} tips PENDING criadas e ${audit.rejected} rejeitadas.`,
       metadata: JSON.stringify({ audit, sample: opportunities.slice(0, 50) }),
     },
   }).catch(() => undefined);

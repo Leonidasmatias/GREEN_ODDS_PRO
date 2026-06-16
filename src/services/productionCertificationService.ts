@@ -5,6 +5,7 @@ import { auditEnvironment } from "./securityService";
 import { runProductionAudit } from "./goLiveService";
 import { getTrainingStatus } from "./modelTrainingService";
 import { isSchedulerEnabled, schedulerFrequencies } from "./schedulerService";
+import { generateSettlementReport } from "./settlementEngine";
 
 type CertStatus = "REPROVADO" | "EM AJUSTE" | "APROVADO COM RESSALVAS" | "APROVADO PARA PRODUCAO";
 const DAY = 24 * 60 * 60 * 1000;
@@ -113,7 +114,7 @@ export async function getOperationMonitoring() {
 }
 
 export async function getProductionCertificate() {
-  const [readiness, dataAudit, providers, storage, environment, training, monitoring, migrationsApplied] = await Promise.all([
+  const [readiness, dataAudit, providers, storage, environment, training, monitoring, migrationsApplied, settlement] = await Promise.all([
     runProductionAudit(),
     getDataAudit(),
     getProviderHealth(),
@@ -122,6 +123,7 @@ export async function getProductionCertificate() {
     getTrainingStatus().catch(() => ({ records: 0, minimum: 100, eligible: false, latest: null })),
     getOperationMonitoring(),
     countAppliedMigrations(),
+    generateSettlementReport().catch(() => ({ pending: 0, settled: 0, won: 0, lost: 0, voids: 0, winRate: 0, roi: 0, profit: 0, latestRun: null, performance: [], generatedAt: new Date().toISOString() })),
   ]);
 
   const licensedProviders = providers.filter((provider) => provider.licensed && provider.configured);
@@ -154,6 +156,7 @@ export async function getProductionCertificate() {
     { item: "Backup configurado", ok: backupsReady, detail: backupsReady ? storage.directory : "Configure BACKUP_DIR/storage externo" },
     { item: "Admin protegido", ok: environment.adminProtected, detail: environment.adminProtected ? "Credenciais configuradas" : "ADMIN_USERNAME/ADMIN_PASSWORD ausentes" },
     { item: "Dataset real", ok: dataApproved, detail: `${dataAudit.summary.datasetRows} registros, ${dataAudit.summary.orphanDatasetRows} orfaos` },
+    { item: "Settlement auditavel", ok: Boolean(settlement.latestRun) || settlement.pending === 0, detail: `${settlement.pending} pendentes, ${settlement.settled} liquidadas` },
     { item: "Providers reais saudaveis", ok: providerReady, detail: healthyProviders.length ? healthyProviders.map((provider) => provider.id).join(", ") : "Nenhum provider real saudavel" },
     { item: "Treinamento elegivel", ok: trainingReady, detail: "records" in training ? `${training.records}/${training.minimum} registros` : "Status indisponivel" },
   ];
@@ -181,6 +184,7 @@ export async function getProductionCertificate() {
     providers: providers.map((provider) => ({ ...provider, lastSync: latestProviderCall })),
     security: environment,
     monitoring,
+    settlement,
     generatedAt: new Date().toISOString(),
   };
 }

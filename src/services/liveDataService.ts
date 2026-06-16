@@ -5,6 +5,7 @@ import { getTrainingStatus } from "./modelTrainingService";
 import { checkBackupStorage } from "./backupService";
 import { isSchedulerEnabled } from "./schedulerService";
 import { getDataConfidence } from "./confidenceEngine";
+import { generateSettlementReport } from "./settlementEngine";
 
 async function countAppliedMigrations() {
   try {
@@ -71,7 +72,7 @@ export async function getReadinessReport() {
     databaseReady = false;
   }
 
-  const [providers, training, latestJob, dataset, storage, migrationsApplied] = await Promise.all([
+  const [providers, training, latestJob, dataset, storage, migrationsApplied, settlement] = await Promise.all([
     getProviderHealth(),
     getTrainingStatus().catch(() => ({
       records: 0,
@@ -86,6 +87,7 @@ export async function getReadinessReport() {
     prisma.trainingDataset.count().catch(() => 0),
     checkBackupStorage(),
     countAppliedMigrations(),
+    generateSettlementReport().catch(() => ({ pending: 0, settled: 0, won: 0, lost: 0, voids: 0, winRate: 0, roi: 0, profit: 0, latestRun: null, performance: [], generatedAt: new Date().toISOString() })),
   ]);
 
   const licensedReady = providers.some((provider) => provider.licensed && provider.configured);
@@ -106,6 +108,7 @@ export async function getReadinessReport() {
     { label: "Backup configurado?", ready: backupConfigured, detail: backupConfigured ? storage.directory : "Configure BACKUP_DIR ou storage externo" },
     { label: "Treinamento pronto?", ready: training.eligible, detail: training.eligible ? `${training.records} registros disponiveis` : `${training.records}/${training.minimum} resultados WON/LOST` },
     { label: "Dataset pronto?", ready: dataset > 0, detail: `${dataset} registros liquidados` },
+    { label: "Settlement pronto?", ready: Boolean(settlement.latestRun) || settlement.pending === 0, detail: `${settlement.pending} pendentes, ${settlement.settled} liquidadas, ROI ${settlement.roi.toFixed(2)}%` },
   ];
   return {
     ready: productionReady,

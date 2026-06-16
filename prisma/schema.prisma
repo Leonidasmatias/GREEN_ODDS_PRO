@@ -76,23 +76,98 @@ model Tip {
   market             String
   selection          String
   odd                Float
+  provider           String   @default("unknown")
+  bookmaker          String   @default("unknown")
   impliedProbability Float
   estimatedProbability Float
   edge               Float
   expectedValue      Float
   confidenceScore    Float
+  score              Float    @default(0)
   classification     String
   risk               String
   status             String   @default("PENDING")
+  stakeSuggested     Float    @default(1)
   stake              Float    @default(1)
+  profit             Float?
   profitLoss         Float?
+  roi                Float?
+  rejectionReason    String?
   createdAt          DateTime @default(now())
   settledAt          DateTime?
   match              Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  results            TipResult[]
 
   @@index([status, createdAt])
   @@index([expectedValue, confidenceScore])
+  @@index([provider, bookmaker])
   @@map("tips")
+}
+
+model TipResult {
+  id              String   @id @default(cuid())
+  tipId           String   @unique
+  matchId         String
+  market          String
+  selection       String
+  status          String
+  homeScore       Int?
+  awayScore       Int?
+  profit          Float
+  roi             Float
+  provider        String
+  bookmaker       String
+  rejectionReason String?
+  settledAt       DateTime @default(now())
+  createdAt       DateTime @default(now())
+  tip             Tip      @relation(fields: [tipId], references: [id], onDelete: Cascade)
+
+  @@index([status, settledAt])
+  @@index([market, selection])
+  @@map("tip_results")
+}
+
+model SettlementRun {
+  id            String   @id @default(cuid())
+  provider      String
+  status        String   @default("RUNNING")
+  tipsProcessed Int      @default(0)
+  tipsSettled   Int      @default(0)
+  errors        String?
+  startedAt     DateTime @default(now())
+  finishedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([provider, startedAt])
+  @@index([status, startedAt])
+  @@map("settlement_runs")
+}
+
+model MarketPerformance {
+  id              String   @id @default(cuid())
+  market          String
+  selection       String
+  sport           String
+  provider        String
+  bookmaker       String
+  oddRange        String
+  totalEntries    Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  voids           Int      @default(0)
+  winRate         Float    @default(0)
+  averageOdd      Float    @default(0)
+  roi             Float    @default(0)
+  profit          Float    @default(0)
+  maxDrawdown     Float    @default(0)
+  confidenceScore Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([market, selection, sport, provider, bookmaker, oddRange])
+  @@index([market, provider])
+  @@index([roi, winRate])
+  @@map("market_performance")
 }
 
 model SyncRun {

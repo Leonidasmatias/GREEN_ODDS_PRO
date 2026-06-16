@@ -2,7 +2,7 @@ import { mkdir, writeFile, access } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 
-type BackupTable = "tips" | "performance" | "training_dataset" | "odds_snapshots";
+type BackupTable = "tips" | "tip_results" | "settlement_runs" | "market_performance" | "performance" | "training_dataset" | "odds_snapshots";
 type BackupFormat = "csv" | "json";
 
 const backupDir = () => path.resolve(process.env.BACKUP_DIR?.trim() || "./backups");
@@ -10,6 +10,9 @@ const escapeCsv = (value: unknown) => { const text = value instanceof Date ? val
 
 async function getRows(table: BackupTable) {
   if (table === "tips") return prisma.tip.findMany({ orderBy: { createdAt: "asc" } });
+  if (table === "tip_results") return prisma.tipResult.findMany({ orderBy: { settledAt: "asc" } });
+  if (table === "settlement_runs") return prisma.settlementRun.findMany({ orderBy: { startedAt: "asc" } });
+  if (table === "market_performance") return prisma.marketPerformance.findMany({ orderBy: { updatedAt: "asc" } });
   if (table === "performance") return prisma.performance.findMany({ orderBy: { periodStart: "asc" } });
   if (table === "training_dataset") return prisma.trainingDataset.findMany({ orderBy: { settledAt: "asc" } });
   return prisma.oddsSnapshot.findMany({ orderBy: { capturedAt: "asc" } });
@@ -31,7 +34,7 @@ export async function runAutomaticBackup() {
   await mkdir(directory, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const results = [];
-  for (const table of ["tips", "performance", "training_dataset", "odds_snapshots"] as BackupTable[]) for (const format of ["csv", "json"] as BackupFormat[]) {
+  for (const table of ["tips", "tip_results", "settlement_runs", "market_performance", "performance", "training_dataset", "odds_snapshots"] as BackupTable[]) for (const format of ["csv", "json"] as BackupFormat[]) {
     const exported = await exportBackup(table, format);
     const filename = `${stamp}-${exported.filename}`;
     await writeFile(path.join(directory, filename), exported.content, "utf8");

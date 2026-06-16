@@ -63,11 +63,19 @@ export async function getHealthStatus() {
   });
 
   const latestJob = await prisma.jobRun.findFirst({ orderBy: { scheduledAt: "desc" } }).catch(() => null);
-  const schedulerLate = latestJob ? Date.now() - latestJob.scheduledAt.getTime() > Math.max(schedulerFrequencies.odds, schedulerFrequencies.results) * 3 : true;
+  const schedulerLate = latestJob ? Date.now() - latestJob.scheduledAt.getTime() > Math.max(schedulerFrequencies.odds, schedulerFrequencies.settlement) * 3 : true;
   checks.push({
     name: "Scheduler",
     status: !isSchedulerEnabled() ? "YELLOW" : latestJob ? (schedulerLate ? "YELLOW" : "GREEN") : "YELLOW",
     detail: !isSchedulerEnabled() ? "SCHEDULER_ENABLED nao esta true nesta instancia" : latestJob ? (schedulerLate ? "Sem execucao recente" : `Ultimo job ${latestJob.name}`) : "Aguardando primeira execucao",
+  });
+
+  const latestSettlement = await prisma.settlementRun.findFirst({ orderBy: { startedAt: "desc" } }).catch(() => null);
+  const pendingTips = await prisma.tip.count({ where: { status: "PENDING" } }).catch(() => 0);
+  checks.push({
+    name: "Settlement Engine",
+    status: latestSettlement?.status === "FAILED" ? "RED" : pendingTips > 0 && !latestSettlement ? "YELLOW" : "GREEN",
+    detail: latestSettlement ? `Ultima execucao ${latestSettlement.status}: ${latestSettlement.tipsSettled}/${latestSettlement.tipsProcessed} liquidadas` : `${pendingTips} tips pendentes aguardando resultado real`,
   });
 
   const storage = await checkBackupStorage();

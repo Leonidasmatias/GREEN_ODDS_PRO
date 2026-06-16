@@ -7,6 +7,7 @@ export interface ValueOpportunity {
   matchId: string;
   oddsSnapshotId: string;
   provider: string;
+  bookmaker: string;
   providerEventId: string;
   competition: string;
   game: string;
@@ -29,6 +30,11 @@ export interface ValueOpportunity {
   status: ValueStatus;
   rejectionReasons: string[];
   historicalSample: number;
+  marketSample: number;
+  marketWinRate: number | null;
+  marketRoi: number | null;
+  marketMaxDrawdown: number | null;
+  settlementBlockReason?: string;
   probabilitySource: "SELECTION" | "MARKET";
   analyzedAt: string;
 }
@@ -40,6 +46,7 @@ export interface ValueAudit {
   approved: number;
   watch: number;
   insufficientRealData: number;
+  tipsCreated: number;
   rejectionReasons: Record<string, number>;
   generatedAt: string;
 }

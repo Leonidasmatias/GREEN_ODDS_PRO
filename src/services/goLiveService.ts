@@ -5,6 +5,7 @@ import { getTrainingStatus } from "./modelTrainingService";
 import { checkBackupStorage } from "./backupService";
 import { auditEnvironment } from "./securityService";
 import { schedulerFrequencies, isSchedulerEnabled } from "./schedulerService";
+import { generateSettlementReport } from "./settlementEngine";
 
 const clamp = (value: number, max = 20) => Math.max(0, Math.min(max, value));
 
@@ -35,7 +36,7 @@ export async function runProductionAudit() {
     databaseConnected = false;
   }
 
-  const [providers, health, training, storage, latestJob, jobs, datasetSize, settledTips, qualityAlerts, performanceRows, environment, migrationsApplied] = await Promise.all([
+  const [providers, health, training, storage, latestJob, jobs, datasetSize, settledTips, qualityAlerts, performanceRows, environment, migrationsApplied, settlement] = await Promise.all([
     getProviderHealth(),
     getHealthStatus().catch(() => ({ status: "RED" as const, checks: [], checkedAt: new Date().toISOString() })),
     getTrainingStatus().catch(() => ({ records: 0, minimum: 100, eligible: false, nextTrainingAt: 100, newRecordsSinceTraining: 0, confidence: { level: "MINIMA" as const, factor: 0, percentage: 0 }, latest: null })),
@@ -48,6 +49,7 @@ export async function runProductionAudit() {
     prisma.performance.count().catch(() => 0),
     Promise.resolve(auditEnvironment()),
     countAppliedMigrations(),
+    generateSettlementReport().catch(() => ({ pending: 0, settled: 0, won: 0, lost: 0, voids: 0, winRate: 0, roi: 0, profit: 0, latestRun: null, performance: [], generatedAt: new Date().toISOString() })),
   ]);
 
   const schedulerEnabled = isSchedulerEnabled();
@@ -87,6 +89,7 @@ export async function runProductionAudit() {
     { item: "Admin protegido", ok: environment.adminProtected, detail: environment.adminProtected ? "Basic Auth configurado" : "ADMIN_USERNAME/ADMIN_PASSWORD ausentes" },
     { item: "Dataset minimo", ok: datasetSize >= 100, detail: `${datasetSize}/100 registros` },
     { item: "Tips liquidadas", ok: settledTips > 0, detail: `${settledTips} tips` },
+    { item: "Settlement engine", ok: Boolean(settlement.latestRun) || settlement.pending === 0, detail: `${settlement.pending} pendentes, ${settlement.settled} liquidadas, ROI ${settlement.roi.toFixed(2)}%` },
     { item: "Treinamento elegivel", ok: training.eligible, detail: `${training.records}/${training.minimum} WON/LOST` },
     { item: "Modelo treinado", ok: Boolean(training.latest), detail: training.latest?.version ?? "Nenhuma versao" },
     { item: "Sem alertas criticos de dados", ok: qualityAlerts === 0, detail: `${qualityAlerts} alertas RED abertos` },
@@ -109,6 +112,7 @@ export async function runProductionAudit() {
     healthStatus: health.status,
     datasetSize,
     settledTips,
+    settlement,
     providers,
     jobs: { total: completedJobs.length, successRate: Math.round(jobSuccessRate * 100), failed: completedJobs.length - successfulJobs.length, latest: latestJob ? { name: latestJob.name, status: latestJob.status, scheduledAt: latestJob.scheduledAt.toISOString() } : null },
     training,
