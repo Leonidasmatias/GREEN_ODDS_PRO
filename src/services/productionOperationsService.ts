@@ -63,7 +63,7 @@ export async function getHealthStatus() {
   });
 
   const latestJob = await prisma.jobRun.findFirst({ orderBy: { scheduledAt: "desc" } }).catch(() => null);
-  const schedulerLate = latestJob ? Date.now() - latestJob.scheduledAt.getTime() > Math.max(schedulerFrequencies.odds, schedulerFrequencies.settlement) * 3 : true;
+  const schedulerLate = latestJob ? Date.now() - latestJob.scheduledAt.getTime() > Math.max(schedulerFrequencies.odds, schedulerFrequencies.results) * 3 : true;
   checks.push({
     name: "Scheduler",
     status: !isSchedulerEnabled() ? "YELLOW" : latestJob ? (schedulerLate ? "YELLOW" : "GREEN") : "YELLOW",

@@ -8,7 +8,8 @@ const date = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", 
 function jobMeta(metadata: string | null) {
   if (!metadata) return "-";
   try {
-    const parsed = JSON.parse(metadata) as { settlement?: { tipsProcessed?: number; tipsSettled?: number }; segmentsAnalyzed?: number; insightsGenerated?: number; risksDetected?: number; tipsBlocked?: number; adjustmentsGenerated?: number; adjustmentsApplied?: number; blockedSegments?: number; score?: number; classification?: string; alertsFound?: number; criticalCount?: number };
+    const parsed = JSON.parse(metadata) as { resultsSynced?: number; resultsReceived?: number; pendingResults?: number; settlement?: { tipsProcessed?: number; tipsSettled?: number; won?: number; lost?: number; voids?: number }; segmentsAnalyzed?: number; insightsGenerated?: number; risksDetected?: number; tipsBlocked?: number; adjustmentsGenerated?: number; adjustmentsApplied?: number; blockedSegments?: number; score?: number; classification?: string; alertsFound?: number; criticalCount?: number };
+    if (parsed.resultsSynced != null || parsed.resultsReceived != null) return `results ${parsed.resultsSynced ?? 0}/${parsed.resultsReceived ?? 0} / settled ${parsed.settlement?.tipsSettled ?? 0} / pending ${parsed.pendingResults ?? 0}`;
     if (parsed.settlement) return `${parsed.settlement.tipsProcessed ?? 0}/${parsed.settlement.tipsSettled ?? 0}`;
     if (parsed.segmentsAnalyzed != null || parsed.insightsGenerated != null) return `segments ${parsed.segmentsAnalyzed ?? 0} / insights ${parsed.insightsGenerated ?? 0}`;
     if (parsed.adjustmentsGenerated != null || parsed.adjustmentsApplied != null) return `adjust ${parsed.adjustmentsGenerated ?? 0}/${parsed.adjustmentsApplied ?? 0} / blocked ${parsed.blockedSegments ?? 0}`;
@@ -32,7 +33,7 @@ export default async function JobsPage() {
   return <>
     <div className="mb-7"><p className="label mb-2 text-neon">Production operations</p><h1 className="text-3xl font-black md:text-4xl">Job Monitor</h1><p className="mt-2 text-sm text-zinc-500">Execucoes persistidas do scheduler e tempos reais de processamento.</p></div>
     <div className="grid gap-4 md:grid-cols-4">{cards.map(({ label, value, Icon }) => <div className="card p-5" key={label}><Icon className="text-neon" size={17}/><p className="label mt-4">{label}</p><strong className="mt-2 block text-2xl">{value}</strong></div>)}</div>
-    <div className="card mt-4 p-4 text-xs text-zinc-500">Odds: {data.frequenciesMinutes.odds} min · Settlement: {data.frequenciesMinutes.settlement} min · Ultima sincronizacao: <b className="text-white">{date(data.summary.lastSync)}</b></div>
+    <div className="card mt-4 p-4 text-xs text-zinc-500">Odds: {data.frequenciesMinutes.odds} min · Result Sync: {data.frequenciesMinutes.results} min · Ultima sincronizacao: <b className="text-white">{date(data.summary.lastSync)}</b></div>
     <section className="card mt-6 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-xs">

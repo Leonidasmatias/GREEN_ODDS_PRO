@@ -1,11 +1,12 @@
-import { prisma } from "@/lib/prisma";
-import { importProviderResults } from "@/providers/resultProvider";
-import { settlePendingTips } from "./settlementService";
+import { syncFinishedMatches } from "./resultCollectorEngine";
 
 export async function importResultsAndSettle() {
-  const feed = await importProviderResults();
-  const matchesUpdated = feed.updated;
-  const settlement = await settlePendingTips(feed.provider);
-  await prisma.auditLog.create({ data: { category: "RESULT_IMPORT", status: "SUCCESS", message: `${feed.received} resultados recebidos de ${feed.provider}, ${matchesUpdated} partidas atualizadas e ${settlement.processed} tips liquidadas.`, metadata: JSON.stringify({ ...feed, settlement }) } });
-  return { scoresReceived: feed.received, matchesUpdated, settlement, provider: feed.provider, warning: feed.failoverErrors.join(" | ") || undefined };
+  const sync = await syncFinishedMatches();
+  return {
+    scoresReceived: sync.resultsReceived,
+    matchesUpdated: sync.matchesUpdated,
+    settlement: sync.settlement,
+    provider: sync.provider,
+    warning: sync.warning,
+  };
 }

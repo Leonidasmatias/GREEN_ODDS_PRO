@@ -14,6 +14,7 @@ import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 import { getDataQualityReport } from "@/services/dataQualityEngine";
+import { getResultCollectorReport } from "@/services/resultCollectorEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,7 @@ export default async function DashboardPage() {
   const attribution = await getPerformanceAttributionReport();
   const adaptive = await getAdaptiveStrategyReport();
   const dataQuality = await getDataQualityReport();
+  const resultCollector = await getResultCollectorReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
@@ -102,6 +104,9 @@ export default async function DashboardPage() {
     <section className="mt-7"><ValueAuditSummary {...valueReport.audit}/></section>
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Entradas pendentes", settlement.pending], ["Entradas liquidadas", settlement.settled], ["WinRate real", `${(settlement.winRate * 100).toFixed(1)}%`], ["ROI real", `${settlement.roi.toFixed(2)}%`], ["Lucro real", `${settlement.profit.toFixed(2)}u`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {[["RESULT_SYNC", resultCollector.status], ["Resultados sincronizados", resultCollector.resultsPersisted.toString()], ["Liquidações realizadas", resultCollector.tipsSettled.toString()], ["Tips WON", resultCollector.won.toString()], ["Tips LOST/VOID", `${resultCollector.lost}/${resultCollector.voids}`], ["Taxa liquidação", `${resultCollector.settlementRate.toFixed(1)}%`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     {ranking.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">SMART RANKING: INSUFFICIENT_REAL_DATA. {ranking.sourceRows}/{ranking.minimumSample} resultados reais liquidados.</div>}
     {ranking.smartConfidence.status === "INSUFFICIENT_REAL_DATA" && <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">SMART CONFIDENCE: INSUFFICIENT_REAL_DATA. {ranking.smartConfidence.sourceRows}/{ranking.smartConfidence.minimumSample} resultados reais liquidados.</div>}

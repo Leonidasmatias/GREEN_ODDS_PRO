@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { syncOddsAndTips } from "./syncService";
-import { importResultsAndSettle } from "./resultImportService";
+import { syncFinishedMatches } from "./resultCollectorEngine";
 import { getPerformance } from "./operationalService";
 import { buildTrainingDataset, generateTrainingMetrics, validateDataset } from "./trainingPipeline";
 import { trainModelIfEligible } from "./modelTrainingService";
@@ -23,14 +23,13 @@ const intervalMinutes = (name: string, fallback: number) => { const value = Numb
 export const schedulerFrequencies = {
   odds: intervalMinutes("ODDS_SYNC_INTERVAL_MINUTES", 15) * minute,
   results: intervalMinutes("RESULTS_SYNC_INTERVAL_MINUTES", 15) * minute,
-  settlement: intervalMinutes("SETTLEMENT_SYNC_INTERVAL_MINUTES", 15) * minute,
   performance: hour,
   dataset: day,
   dataQuality: hour,
   backup: day,
 };
 
-type JobName = "ODDS_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "AUTO_DISCOVERY" | "BANKROLL_RECALCULATION" | "RISK_MONITORING" | "PERFORMANCE_ATTRIBUTION" | "ADAPTIVE_STRATEGY" | "DATA_QUALITY_AUDIT" | "BACKUP";
+type JobName = "ODDS_SYNC" | "RESULT_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "AUTO_DISCOVERY" | "BANKROLL_RECALCULATION" | "RISK_MONITORING" | "PERFORMANCE_ATTRIBUTION" | "ADAPTIVE_STRATEGY" | "DATA_QUALITY_AUDIT" | "BACKUP";
 const running = new Set<JobName>();
 const schedulerOwnerId = randomUUID();
 
@@ -76,7 +75,7 @@ export function startScheduler() {
   if (globalScheduler.productionSchedulerStarted) return;
   globalScheduler.productionSchedulerStarted = true;
   schedule("ODDS_SYNC", schedulerFrequencies.odds, async () => { const result = await syncOddsAndTips(); if (!result.ok) throw new Error(result.warning ?? "Sincronização real indisponível"); return result; });
-  schedule("SETTLEMENT_SYNC", schedulerFrequencies.settlement, importResultsAndSettle);
+  schedule("RESULT_SYNC", schedulerFrequencies.results, syncFinishedMatches);
   schedule("PERFORMANCE_UPDATE", schedulerFrequencies.performance, getPerformance);
   schedule("TRAINING_DATASET", schedulerFrequencies.dataset, async () => ({ build: await buildTrainingDataset(), validation: await validateDataset(), metrics: await generateTrainingMetrics(), training: await trainModelIfEligible() }));
   schedule("ML_TRAINING", schedulerFrequencies.dataset, trainBaselineModel);
@@ -100,5 +99,5 @@ export async function getJobMonitor() {
     prisma.jobRun.count({ where: { status: "FAILED" } }),
     prisma.jobRun.findFirst({ where: { name: "ODDS_SYNC", status: "SUCCESS" }, orderBy: { completedAt: "desc" } }),
   ]);
-  return { summary: { executed: runs.filter((run) => ["SUCCESS", "FAILED"].includes(run.status)).length, pending, failed, averageDurationMs: runs.filter((run) => run.durationMs != null).length ? Math.round(runs.reduce((sum, run) => sum + (run.durationMs ?? 0), 0) / runs.filter((run) => run.durationMs != null).length) : 0, lastSync: latestSync?.completedAt?.toISOString() ?? null }, frequenciesMinutes: { odds: schedulerFrequencies.odds / minute, results: schedulerFrequencies.results / minute, settlement: schedulerFrequencies.settlement / minute }, runs: runs.map((run) => ({ ...run, scheduledAt: run.scheduledAt.toISOString(), startedAt: run.startedAt?.toISOString() ?? null, completedAt: run.completedAt?.toISOString() ?? null })) };
+  return { summary: { executed: runs.filter((run) => ["SUCCESS", "FAILED"].includes(run.status)).length, pending, failed, averageDurationMs: runs.filter((run) => run.durationMs != null).length ? Math.round(runs.reduce((sum, run) => sum + (run.durationMs ?? 0), 0) / runs.filter((run) => run.durationMs != null).length) : 0, lastSync: latestSync?.completedAt?.toISOString() ?? null }, frequenciesMinutes: { odds: schedulerFrequencies.odds / minute, results: schedulerFrequencies.results / minute }, runs: runs.map((run) => ({ ...run, scheduledAt: run.scheduledAt.toISOString(), startedAt: run.startedAt?.toISOString() ?? null, completedAt: run.completedAt?.toISOString() ?? null })) };
 }

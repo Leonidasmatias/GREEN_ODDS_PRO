@@ -21,6 +21,10 @@ export default async function GoLivePage() {
     { label: "Ajustes", value: adaptive.adjustmentsApplied, Icon: Timer },
     { label: "Data Quality", value: dataQuality.classification, Icon: ShieldCheck },
     { label: "DQ Score", value: dataQuality.score, Icon: Gauge },
+    { label: "RESULT_SYNC", value: data.resultCollector.status, Icon: Timer },
+    { label: "Resultados reais", value: data.resultCollector.resultsPersisted, Icon: CheckCircle2 },
+    { label: "Liquidações auto", value: data.resultCollector.tipsSettled, Icon: Trophy },
+    { label: "Taxa liquidação", value: `${data.resultCollector.settlementRate.toFixed(1)}%`, Icon: Gauge },
   ];
 
   return <>
@@ -30,6 +34,7 @@ export default async function GoLivePage() {
     <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Performance Attribution</p><p className="mt-2 text-xs text-zinc-500">{attribution.totalTipsAnalyzed}/{attribution.minimumSample} TipResult reais analisados. Status: <b className="text-white">{attribution.status}</b>.</p></section>
     <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Adaptive Strategy</p><p className="mt-2 text-xs text-zinc-500">{adaptive.totalTipsAnalyzed}/{adaptive.minimumSample} TipResult reais analisados. Ajustes aplicados: <b className="text-white">{adaptive.adjustmentsApplied}</b>.</p></section>
     <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Data Quality</p><p className="mt-2 text-xs text-zinc-500">Score {dataQuality.score}/100 ({dataQuality.classification}). Alertas: <b className="text-white">{dataQuality.alertsFound}</b>. Nenhum dado e corrigido automaticamente.</p></section>
+    <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Real Result Collector</p><p className="mt-2 text-xs text-zinc-500">{data.resultCollector.resultsPersisted} resultados reais sincronizados via {data.resultCollector.provider}. TipResult alimentado automaticamente somente quando o resultado final real permite liquidação: <b className="text-white">{data.resultCollector.won}/{data.resultCollector.lost}/{data.resultCollector.voids}</b> W/L/V.</p></section>
     <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Composicao do score</p><div className="mt-5 space-y-4">{data.categories.map((category) => <div key={category.name}><div className="mb-2 flex justify-between text-xs"><b>{category.name}</b><span>{category.score}/{category.max}</span></div><div className="h-2 rounded-full bg-zinc-900"><div className="h-full rounded-full bg-neon" style={{ width: `${category.score / category.max * 100}%` }}/></div></div>)}</div></section>
     <section className="card mt-6 overflow-hidden"><div className="border-b border-line p-5"><p className="text-sm font-black uppercase">Checklist completo</p></div><div className="divide-y divide-line/60">{data.checklist.map((check) => <div className="flex items-center gap-3 p-4" key={check.item}>{check.ok ? <CheckCircle2 className="text-neon" size={17}/> : <CircleX className="text-red-400" size={17}/>}<div><b className="text-xs">{check.item}</b><p className="mt-1 text-[10px] text-zinc-600">{check.detail}</p></div></div>)}</div></section>
     <div className="mt-6 rounded-xl border border-line p-4 text-[11px] text-zinc-500">Prontidao tecnica nao promete lucro nem garante green. Previsoes continuam probabilisticas e exigem gestao responsavel.</div>

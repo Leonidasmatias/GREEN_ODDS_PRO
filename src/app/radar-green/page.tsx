@@ -8,13 +8,14 @@ import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
+import { getResultCollectorReport } from "@/services/resultCollectorEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function RadarPage() {
-  const [report, ml, discovery, bankroll, riskShield, attribution, adaptive] = await Promise.all([buildValueReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport()]);
+  const [report, ml, discovery, bankroll, riskShield, attribution, adaptive, resultCollector] = await Promise.all([buildValueReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getResultCollectorReport()]);
   const validatedGreens = report.entries.filter((item) => (
     item.classification === "GREEN FORTE" ||
     item.classification === "ELITE GREEN" ||
@@ -52,6 +53,12 @@ export default async function RadarPage() {
       <div className="card p-4"><p className="label">Ajustes</p><strong className="mt-3 block text-lg text-white">{adaptive.adjustmentsGenerated}</strong></div>
       <div className="card p-4"><p className="label">Aplicados</p><strong className="mt-3 block text-lg text-white">{adaptive.adjustmentsApplied}</strong></div>
       <div className="card p-4"><p className="label">Bloqueios</p><strong className="mt-3 block text-lg text-white">{adaptive.blockedSegments}</strong></div>
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <div className="card p-4"><p className="label">RESULT_SYNC</p><strong className="mt-3 block text-lg text-white">{resultCollector.status}</strong></div>
+      <div className="card p-4"><p className="label">Resultados reais</p><strong className="mt-3 block text-lg text-white">{resultCollector.resultsPersisted}</strong></div>
+      <div className="card p-4"><p className="label">Liquidadas auto</p><strong className="mt-3 block text-lg text-white">{resultCollector.tipsSettled}</strong></div>
+      <div className="card p-4"><p className="label">W/L/V</p><strong className="mt-3 block text-lg text-white">{resultCollector.won}/{resultCollector.lost}/{resultCollector.voids}</strong></div>
     </section>
     <section className="card mt-6 p-5">
       <p className="text-sm font-black uppercase tracking-wider">Auto Discovery</p>

@@ -11,16 +11,20 @@ import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 import { getDataQualityReport } from "@/services/dataQualityEngine";
+import { getResultCollectorReport } from "@/services/resultCollectorEngine";
 
 export const dynamic = "force-dynamic";
 
 export default async function GreenAiReportPage() {
-  const [report, valueReport, settlement, confidence, ml, discovery, bankroll, riskShield, attribution, adaptive, dataQuality] = await Promise.all([getGreenAiReport(), buildValueReport(), generateSettlementReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getDataQualityReport()]);
+  const [report, valueReport, settlement, confidence, ml, discovery, bankroll, riskShield, attribution, adaptive, dataQuality, resultCollector] = await Promise.all([getGreenAiReport(), buildValueReport(), generateSettlementReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getDataQualityReport(), getResultCollectorReport()]);
   return <>
     <div className="mb-7"><p className="label mb-2 text-neon">Relatório executivo AI</p><h1 className="text-3xl font-black tracking-tight md:text-4xl">Evolução e performance histórica</h1><p className="mt-2 max-w-3xl text-sm text-zinc-500">Leitura probabilística do modelo, mercados e backtests baseada exclusivamente nos registros disponíveis.</p></div>
     <section className="mb-6"><ValueAuditSummary {...valueReport.audit}/></section>
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Pendentes", settlement.pending], ["Liquidadas", settlement.settled], ["WinRate real", `${(settlement.winRate * 100).toFixed(1)}%`], ["ROI real", `${settlement.roi.toFixed(2)}%`], ["Lucro real", `${settlement.profit.toFixed(2)}u`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
+    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {[["RESULT_SYNC", resultCollector.status], ["Resultados sincronizados", resultCollector.resultsPersisted], ["Liquidações realizadas", resultCollector.tipsSettled], ["Tips WON", resultCollector.won], ["Tips LOST/VOID", `${resultCollector.lost}/${resultCollector.voids}`], ["Taxa liquidação", `${resultCollector.settlementRate.toFixed(1)}%`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Smart Confidence", confidence.status], ["SampleSize", `${confidence.sourceRows}/${confidence.minimumSample}`], ["Top Market", confidence.topMarkets[0]?.market ?? "INSUFFICIENT_REAL_DATA"], ["Top Bookmaker", confidence.topBookmakers[0]?.bookmaker ?? "INSUFFICIENT_REAL_DATA"], ["Top Odd Range", confidence.topOddRanges[0]?.oddRange ?? "INSUFFICIENT_REAL_DATA"]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}

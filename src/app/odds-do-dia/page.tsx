@@ -10,13 +10,14 @@ import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
+import { getResultCollectorReport } from "@/services/resultCollectorEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function OddsTodayPage() {
-  const [feed, valueReport, confidence, ml, discovery, bankroll, riskShield, attribution, adaptive] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport()]);
+  const [feed, valueReport, confidence, ml, discovery, bankroll, riskShield, attribution, adaptive, resultCollector] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getResultCollectorReport()]);
   const preGameValues = [...valueReport.entries, ...valueReport.watchlist].filter((item) => item.matchStatus === "PRE_GAME");
   return <>
     <PageTitle eyebrow="Pre-jogo" title="Odds do dia" description="Partidas do provider ativo e analise estatistica baseada somente em odds reais persistidas." action={<button className="flex items-center gap-2 rounded-xl border border-line bg-white/[.03] px-5 py-3 text-xs font-bold"><SlidersHorizontal size={15}/> Ajustar filtros</button>}/>
@@ -67,6 +68,12 @@ export default async function OddsTodayPage() {
       <StatCard label="Ajustes gerados" value={adaptive.adjustmentsGenerated.toString()} detail="baseado em performance" tone="white"/>
       <StatCard label="Ajustes aplicados" value={adaptive.adjustmentsApplied.toString()} detail="regras restritivas"/>
       <StatCard label="Segmentos bloqueados" value={adaptive.blockedSegments.toString()} detail="sem all-in, sem override" tone="yellow"/>
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <StatCard label="RESULT_SYNC" value={resultCollector.status} detail={resultCollector.provider}/>
+      <StatCard label="Resultados sincronizados" value={resultCollector.resultsPersisted.toString()} detail="provider licenciado" tone="white"/>
+      <StatCard label="Liquidações realizadas" value={resultCollector.tipsSettled.toString()} detail={`W/L/V ${resultCollector.won}/${resultCollector.lost}/${resultCollector.voids}`}/>
+      <StatCard label="Taxa de liquidação" value={`${resultCollector.settlementRate.toFixed(1)}%`} detail={resultCollector.lastSync ? formatDate(resultCollector.lastSync) : "PENDING"} tone="yellow"/>
     </section>
     <section className="card mt-6 overflow-hidden">
       <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Confidence por historico real</p><p className="mt-1 text-[10px] text-zinc-600">Win rate, ROI, drawdown e sampleSize liberados somente com 30 liquidacoes reais</p></div>

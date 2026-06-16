@@ -6,6 +6,7 @@ import { checkBackupStorage } from "./backupService";
 import { isSchedulerEnabled } from "./schedulerService";
 import { getDataConfidence } from "./confidenceEngine";
 import { generateSettlementReport } from "./settlementEngine";
+import { getResultCollectorReport } from "./resultCollectorEngine";
 
 async function countAppliedMigrations() {
   try {
@@ -72,7 +73,7 @@ export async function getReadinessReport() {
     databaseReady = false;
   }
 
-  const [providers, training, latestJob, dataset, storage, migrationsApplied, settlement] = await Promise.all([
+  const [providers, training, latestJob, dataset, storage, migrationsApplied, settlement, resultCollector] = await Promise.all([
     getProviderHealth(),
     getTrainingStatus().catch(() => ({
       records: 0,
@@ -88,6 +89,7 @@ export async function getReadinessReport() {
     checkBackupStorage(),
     countAppliedMigrations(),
     generateSettlementReport().catch(() => ({ pending: 0, settled: 0, won: 0, lost: 0, voids: 0, winRate: 0, roi: 0, profit: 0, latestRun: null, performance: [], generatedAt: new Date().toISOString() })),
+    getResultCollectorReport().catch(() => ({ status: "PENDING", provider: "NO_RESULT_SYNC", resultsReceived: 0, resultsPersisted: 0, matchesUpdated: 0, pendingResults: 0, tipsProcessed: 0, tipsSettled: 0, won: 0, lost: 0, voids: 0, settlementRate: 0, lastSync: null })),
   ]);
 
   const licensedReady = providers.some((provider) => provider.licensed && provider.configured);
@@ -109,6 +111,7 @@ export async function getReadinessReport() {
     { label: "Treinamento pronto?", ready: training.eligible, detail: training.eligible ? `${training.records} registros disponiveis` : `${training.records}/${training.minimum} resultados WON/LOST` },
     { label: "Dataset pronto?", ready: dataset > 0, detail: `${dataset} registros liquidados` },
     { label: "Settlement pronto?", ready: Boolean(settlement.latestRun) || settlement.pending === 0, detail: `${settlement.pending} pendentes, ${settlement.settled} liquidadas, ROI ${settlement.roi.toFixed(2)}%` },
+    { label: "Result Sync ativo?", ready: resultCollector.status === "SUCCESS" || resultCollector.resultsPersisted > 0, detail: `${resultCollector.resultsPersisted} resultados reais, ${resultCollector.tipsSettled} tips liquidadas, taxa ${resultCollector.settlementRate.toFixed(1)}%` },
   ];
   return {
     ready: productionReady,

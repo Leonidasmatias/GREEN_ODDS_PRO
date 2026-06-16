@@ -21,6 +21,7 @@ model Match {
   updatedAt   DateTime @updatedAt
   tips        Tip[]
   oddsSnapshots OddsSnapshot[]
+  results     MatchResult[]
 
   @@index([startsAt, status])
   @@map("matches")
@@ -141,6 +142,74 @@ model SettlementRun {
   @@index([provider, startedAt])
   @@index([status, startedAt])
   @@map("settlement_runs")
+}
+
+model MatchResult {
+  id          String   @id @default(cuid())
+  matchId     String
+  providerId  String
+  provider    String
+  competition String
+  homeTeam    String
+  awayTeam    String
+  homeScore   Int?
+  awayScore   Int?
+  status      String   @default("PENDING")
+  source      String   @default("PROVIDER")
+  rawPayload  String?
+  collectedAt DateTime @default(now())
+  finishedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([matchId, status])
+  @@index([provider, collectedAt])
+  @@map("match_results")
+}
+
+model ResultSyncRun {
+  id               String   @id @default(cuid())
+  provider         String
+  startedAt        DateTime @default(now())
+  finishedAt       DateTime?
+  status           String   @default("RUNNING")
+  resultsReceived  Int      @default(0)
+  resultsPersisted Int      @default(0)
+  matchesUpdated   Int      @default(0)
+  pendingResults   Int      @default(0)
+  remainingLimit   Int?
+  errors           String?
+  notes            String?
+
+  @@index([provider, startedAt])
+  @@index([status, startedAt])
+  @@map("result_sync_runs")
+}
+
+model SettlementAudit {
+  id              String   @id @default(cuid())
+  provider        String
+  resultSyncRunId String?
+  settlementRunId String?
+  resultsSynced   Int      @default(0)
+  tipsProcessed   Int      @default(0)
+  tipsSettled     Int      @default(0)
+  won             Int      @default(0)
+  lost            Int      @default(0)
+  voids           Int      @default(0)
+  pending         Int      @default(0)
+  settlementRate  Float    @default(0)
+  status          String   @default("SUCCESS")
+  reason          String?
+  metadata        String?
+  createdAt       DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([status, createdAt])
+  @@index([resultSyncRunId])
+  @@map("settlement_audits")
 }
 
 model MarketPerformance {
