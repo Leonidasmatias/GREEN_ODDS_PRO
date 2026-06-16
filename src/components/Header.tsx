@@ -30,7 +30,7 @@ export function Header() {
         </nav>
 
         <div className="ml-auto hidden max-w-64 flex-1 items-center gap-2 rounded-xl border border-line bg-black/20 px-3 py-2 text-zinc-600 xl:flex"><Search size={15}/><span className="text-[10px]">Buscar jogo ou mercado</span></div>
-        <button aria-label="Notificacoes" className="ml-auto grid h-9 w-9 place-items-center rounded-xl border border-line bg-white/[.025] text-zinc-500 lg:ml-0"><Bell size={16}/></button>
+        <button aria-label="Notificacoes indisponiveis" title="Notificacoes: PENDING_RESULTS" disabled className="ml-auto grid h-9 w-9 cursor-not-allowed place-items-center rounded-xl border border-line bg-white/[.025] text-zinc-700 lg:ml-0"><Bell size={16}/></button>
         <div className="hidden items-center gap-3 border-l border-line pl-4 sm:flex"><div className="text-right"><p className="text-[10px] font-bold text-white">Provider</p><p className="text-[9px] text-neon">Dados reais</p></div><div className="grid h-9 w-9 place-items-center rounded-xl bg-neon text-[10px] font-black text-black">API</div></div>
       </div>
       <div className="flex gap-1 overflow-x-auto border-t border-white/[.03] px-3 lg:hidden">{navigation.map(({href,label,icon:Icon}) => <Link key={label} href={href} className="flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">{Icon && <Icon size={11}/>} {label}</Link>)}</div>

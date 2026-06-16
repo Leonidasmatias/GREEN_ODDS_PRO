@@ -16,10 +16,11 @@ import { getPerformanceAttributionReport } from "@/services/performanceAttributi
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 import { getDataQualityReport } from "@/services/dataQualityEngine";
 import { getResultCollectorReport } from "@/services/resultCollectorEngine";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
-const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
+const formatDate = (value: string) => formatDateTimeBrt(value);
 
 type RankingRow = {
   id?: string;

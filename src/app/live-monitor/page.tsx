@@ -3,6 +3,7 @@ import { OddsHistoryChart } from "@/components/OddsHistoryChart";
 import { ValueOpportunityTable } from "@/components/ValueOpportunityTable";
 import { getLiveMonitor } from "@/services/liveDataService";
 import { buildValueReport } from "@/services/valueEngine";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function LiveMonitorPage() {
     </div>
     <div className="card mb-6 flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
       <span><Radio size={14} className="mr-2 inline text-red-400"/>{data.matches.length} jogos ao vivo</span>
-      <span className="text-zinc-500">Filtro: <b className="text-white">{data.configuration.competitionFilter}</b> · Prioridade: {data.configuration.priority.join(" -> ")}</span>
+      <span className="text-zinc-500">Atualizado: <b className="text-white">{formatDateTimeBrt(data.refreshedAt)}</b> · Filtro: <b className="text-white">{data.configuration.competitionFilter}</b> · Prioridade: {data.configuration.priority.join(" -> ")}</span>
     </div>
     {data.matches.length ? data.matches.map((match) => <section key={match.id} className="card mb-6 overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-5">

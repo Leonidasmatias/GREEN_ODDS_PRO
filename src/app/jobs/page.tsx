@@ -1,10 +1,11 @@
 import { Activity, AlertTriangle, CheckCircle2, Clock3 } from "lucide-react";
 import { CreatorSignature } from "@/components/CreatorSignature";
 import { getJobMonitor } from "@/services/schedulerService";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
-const date = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value)) : "-";
+const date = (value: string | null) => formatDateTimeBrt(value);
 
 function jobMeta(metadata: string | null) {
   if (!metadata) return "-";

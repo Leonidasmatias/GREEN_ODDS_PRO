@@ -1,6 +1,7 @@
 import { CheckCircle2, CircleX, FileCheck2, Gauge, ShieldCheck } from "lucide-react";
 import { CreatorSignature } from "@/components/CreatorSignature";
 import { getProductionCertificate } from "@/services/productionCertificationService";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function ProductionCertificatePage() {
         <Gauge className="text-neon"/>
         <p className="label mt-3">Production Score</p>
         <h2 className="mt-1 text-2xl font-black">{data.classification}</h2>
-        <p className="mt-2 text-xs text-zinc-500">Readiness: {data.readinessScore}/100 · gerado em {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(data.generatedAt))}</p>
+        <p className="mt-2 text-xs text-zinc-500">Readiness: {data.readinessScore}/100 · gerado em {formatDateTimeBrt(data.generatedAt)}</p>
       </div>
       <ShieldCheck className={data.status === "APPROVED" ? "text-neon" : "text-amber-300"} size={44}/>
     </section>

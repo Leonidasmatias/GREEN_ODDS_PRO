@@ -20,7 +20,7 @@ async function getRealPerformance() {
   let reds = 0;
   const byDay = new Map<string, ChartPoint>();
   for (const tip of tips) {
-    const date = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(tip.settledAt ?? tip.createdAt);
+    const date = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" }).format(tip.settledAt ?? tip.createdAt);
     profit += tip.profitLoss ?? 0;
     stake += tip.stake;
     greens += tip.status === "WON" ? 1 : 0;

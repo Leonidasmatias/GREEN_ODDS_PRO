@@ -10,10 +10,11 @@ import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 import { getResultCollectorReport } from "@/services/resultCollectorEngine";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
-const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
+const formatDate = (value: string) => formatDateTimeBrt(value);
 
 export default async function RadarPage() {
   const [report, ml, discovery, bankroll, riskShield, attribution, adaptive, resultCollector] = await Promise.all([buildValueReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getResultCollectorReport()]);

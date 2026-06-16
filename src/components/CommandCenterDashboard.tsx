@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Activity, BellRing, Clock3, Crosshair, Database, Percent, RefreshCw, ShieldAlert, Target, TrendingUp } from "lucide-react";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 type CommandData = {
   summary: { gamesToday: number; oddsToday: number; generatedToday: number; settledToday: number; greens: number; reds: number; roi: number; winRate: number; lastSync: string | null; syncStatus: string };
@@ -12,7 +13,7 @@ type CommandData = {
   refreshedAt: string;
 };
 
-const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value)) : "Ainda não executada";
+const formatDate = (value: string | null) => formatDateTimeBrt(value, "Ainda nao executada");
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 
 export function CommandCenterDashboard({ initialData }: { initialData: CommandData }) {

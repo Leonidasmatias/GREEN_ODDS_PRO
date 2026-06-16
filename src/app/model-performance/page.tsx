@@ -9,6 +9,7 @@ import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function ModelPerformancePage() {
   return <>
     <div className="mb-7"><p className="label mb-2 text-neon">Validação temporal</p><h1 className="text-3xl font-black tracking-tight md:text-4xl">Model Performance</h1><p className="mt-2 max-w-3xl text-sm text-zinc-500">Métricas calculadas somente no conjunto de teste futuro, preservando a divisão cronológica 70% treino, 15% validação e 15% teste.</p></div>
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-      {[["ML status", ml.status], ["TotalSamples", `${ml.totalSamples}/${ml.minimumSamples}`], ["Ultima execucao", ml.lastRunAt ?? "INSUFFICIENT_REAL_DATA"], ["Accuracy", ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`], ["WinRate backtest", ml.winRateBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.winRateBacktest.toFixed(2)}%`], ["ROI backtest", ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+      {[["ML status", ml.status], ["TotalSamples", `${ml.totalSamples}/${ml.minimumSamples}`], ["Ultima execucao", ml.lastRunAt ? formatDateTimeBrt(ml.lastRunAt) : "INSUFFICIENT_REAL_DATA"], ["Accuracy", ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`], ["WinRate backtest", ml.winRateBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.winRateBacktest.toFixed(2)}%`], ["ROI backtest", ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block break-words text-lg text-white">{value}</strong></div>)}
     </section>
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Discovery", discovery.status], ["Tips analisadas", `${discovery.totalTipsAnalyzed}/${discovery.minimumSample}`], ["Padroes", discovery.patternsFound.toString()], ["Recomendacoes", discovery.recommendationsGenerated.toString()], ["Bloqueio", discovery.blockReason ?? "OK"]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}

@@ -2,7 +2,7 @@ import { Radio } from "lucide-react";
 import type { Game } from "@/lib/types";
 
 function OddCell({ label, value }: { label: string; value: number }) {
-  return <button className="group min-w-[74px] rounded-lg border border-gold/10 bg-gold/[.07] px-3 py-2 text-center transition hover:border-gold/40 hover:bg-gold/15"><span className="block text-[8px] font-black uppercase text-zinc-600">{label}</span><strong className="mt-0.5 block text-sm text-gold transition group-hover:text-goldLight">{value.toFixed(2)}</strong></button>;
+  return <div title="Odd informativa do provider licenciado; sem acao de aposta" className="min-w-[74px] rounded-lg border border-gold/10 bg-gold/[.07] px-3 py-2 text-center"><span className="block text-[8px] font-black uppercase text-zinc-600">{label}</span><strong className="mt-0.5 block text-sm text-gold">{value.toFixed(2)}</strong></div>;
 }
 
 export function OddsTable({ games }: { games: Game[] }) {

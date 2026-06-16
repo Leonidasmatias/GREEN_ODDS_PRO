@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle2, CopyCheck, Database, FileCheck2, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 type AuditData = {
   summary: { snapshots: number; settlements: number; failedSyncs: number; duplicatesAvoided: number; matches: number; tips: number; datasetRows: number; databaseIntegrity: string };
@@ -10,7 +11,7 @@ type AuditData = {
   error?: string;
 };
 
-const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
+const formatDate = (value: string) => formatDateTimeBrt(value);
 
 export function AuditDashboard({ initialData }: { initialData: AuditData }) {
   const [data, setData] = useState(initialData);

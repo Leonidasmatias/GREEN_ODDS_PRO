@@ -12,16 +12,17 @@ import { getRiskShieldReport } from "@/services/riskShieldEngine";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 import { getResultCollectorReport } from "@/services/resultCollectorEngine";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
-const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
+const formatDate = (value: string) => formatDateTimeBrt(value);
 
 export default async function OddsTodayPage() {
   const [feed, valueReport, confidence, ml, discovery, bankroll, riskShield, attribution, adaptive, resultCollector] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getResultCollectorReport()]);
   const preGameValues = [...valueReport.entries, ...valueReport.watchlist].filter((item) => item.matchStatus === "PRE_GAME");
   return <>
-    <PageTitle eyebrow="Pre-jogo" title="Odds do dia" description="Partidas do provider ativo e analise estatistica baseada somente em odds reais persistidas." action={<button className="flex items-center gap-2 rounded-xl border border-line bg-white/[.03] px-5 py-3 text-xs font-bold"><SlidersHorizontal size={15}/> Ajustar filtros</button>}/>
+    <PageTitle eyebrow="Pre-jogo" title="Odds do dia" description="Partidas do provider ativo e analise estatistica baseada somente em odds reais persistidas." action={<a href="#filtros-odds" className="flex items-center gap-2 rounded-xl border border-line bg-white/[.03] px-5 py-3 text-xs font-bold"><SlidersHorizontal size={15}/> Ajustar filtros</a>}/>
     <div className="grid gap-4 sm:grid-cols-3">
       <StatCard label="Jogos carregados" value={feed.games.length.toString()} detail={feed.provider}/>
       <StatCard label="Odds analisadas" value={valueReport.audit.analyzed.toString()} detail="value engine" tone="white"/>
@@ -75,6 +76,10 @@ export default async function OddsTodayPage() {
       <StatCard label="Resultados sincronizados" value={resultCollector.resultsPersisted.toString()} detail="provider licenciado" tone="white"/>
       <StatCard label="Liquidações realizadas" value={resultCollector.tipsSettled.toString()} detail={`W/L/V ${resultCollector.won}/${resultCollector.lost}/${resultCollector.voids}`}/>
       <StatCard label="Taxa de liquidação" value={`${resultCollector.settlementRate.toFixed(1)}%`} detail={resultCollector.lastSync ? formatDate(resultCollector.lastSync) : "PENDING"} tone="yellow"/>
+    </section>
+    <section id="filtros-odds" className="card mt-6 p-5">
+      <p className="text-sm font-black uppercase tracking-wider">Filtros de Odds do Dia</p>
+      <p className="mt-2 text-xs text-zinc-500">Filtro ativo: PRE_GAME com odds reais persistidas. Mercados sem amostra real suficiente permanecem INSUFFICIENT_REAL_DATA; resultados ausentes permanecem PENDING_RESULTS.</p>
     </section>
     <section className="card mt-6 overflow-hidden">
       <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Confidence por historico real</p><p className="mt-1 text-[10px] text-zinc-600">Win rate, ROI, drawdown e sampleSize liberados somente com 30 liquidacoes reais</p></div>

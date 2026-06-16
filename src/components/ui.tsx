@@ -9,7 +9,7 @@ export function PageTitle({ eyebrow, title, description, action }: { eyebrow: st
 
 export function StatCard({ label, value, detail, tone = "green" }: { label: string; value: string; detail: string; tone?: "green" | "yellow" | "white" }) {
   const colors = { green: "text-neon", yellow: "text-amber-300", white: "text-white" };
-  return <div className="card p-5"><div className="flex items-start justify-between"><p className="label">{label}</p><TrendingUp size={16} className={colors[tone]}/></div><p className={`mt-3 text-3xl font-black tracking-tight ${colors[tone]}`}>{value}</p><p className="mt-1 text-[11px] text-zinc-600">{detail}</p></div>;
+  return <div className="card p-5"><div className="flex items-start justify-between"><p className="label">{label}</p><TrendingUp size={16} className={colors[tone]}/></div><p className={`mt-3 break-words text-3xl font-black tracking-tight ${colors[tone]}`}>{value}</p><p className="mt-1 break-words text-[11px] text-zinc-600">{detail}</p></div>;
 }
 
 export function GamesList({ items }: { items: Game[] }) {

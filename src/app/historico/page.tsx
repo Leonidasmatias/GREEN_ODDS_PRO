@@ -1,5 +1,6 @@
 import { PageTitle, StatCard } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function HistoryPage() {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-xs">
           <thead><tr className="border-b border-line text-[9px] uppercase tracking-wider text-zinc-600"><th className="py-4">Data</th><th>Jogo</th><th>Mercado</th><th>Odd</th><th>Selecao</th><th>Status</th><th>P/L real</th></tr></thead>
-          <tbody>{tips.length ? tips.map((item) => <tr key={item.id} className="border-b border-line/60"><td className="py-5 font-bold text-zinc-500">{new Intl.DateTimeFormat("pt-BR").format(item.createdAt)}</td><td className="font-bold">{item.match.homeTeam} x {item.match.awayTeam}</td><td className="text-zinc-400">{item.market}</td><td className="font-black">{item.odd.toFixed(2)}</td><td className="text-zinc-400">{item.selection}</td><td><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase ${item.status === "WON" ? "border-neon/20 bg-neon/10 text-neon" : item.status === "LOST" ? "border-red-500/20 bg-red-500/10 text-red-400" : "border-amber-400/20 bg-amber-400/10 text-amber-300"}`}>{item.status}</span></td><td className={(item.profitLoss ?? 0) > 0 ? "font-black text-neon" : (item.profitLoss ?? 0) < 0 ? "font-black text-red-400" : "text-zinc-500"}>{item.profitLoss == null ? "-" : units(item.profitLoss)}</td></tr>) : <tr><td colSpan={7} className="py-12 text-center text-zinc-600">Nenhuma tip real registrada ainda.</td></tr>}</tbody>
+          <tbody>{tips.length ? tips.map((item) => <tr key={item.id} className="border-b border-line/60"><td className="py-5 font-bold text-zinc-500">{formatDateTimeBrt(item.createdAt)}</td><td className="font-bold">{item.match.homeTeam} x {item.match.awayTeam}</td><td className="text-zinc-400">{item.market}</td><td className="font-black">{item.odd.toFixed(2)}</td><td className="text-zinc-400">{item.selection}</td><td><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase ${item.status === "WON" ? "border-neon/20 bg-neon/10 text-neon" : item.status === "LOST" ? "border-red-500/20 bg-red-500/10 text-red-400" : "border-amber-400/20 bg-amber-400/10 text-amber-300"}`}>{item.status}</span></td><td className={(item.profitLoss ?? 0) > 0 ? "font-black text-neon" : (item.profitLoss ?? 0) < 0 ? "font-black text-red-400" : "text-zinc-500"}>{item.profitLoss == null ? "-" : units(item.profitLoss)}</td></tr>) : <tr><td colSpan={7} className="py-12 text-center text-zinc-600">Nenhuma tip real registrada ainda.</td></tr>}</tbody>
         </table>
       </div>
     </section>

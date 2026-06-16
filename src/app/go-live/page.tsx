@@ -4,6 +4,7 @@ import { runProductionAudit } from "@/services/goLiveService";
 import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 import { getDataQualityReport } from "@/services/dataQualityEngine";
+import { formatDateTimeBrt } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function GoLivePage() {
 
   return <>
     <div className="mb-7"><p className="label mb-2 text-neon">Production checklist</p><h1 className="text-3xl font-black md:text-4xl">Go Live Preparation</h1><p className="mt-2 text-sm text-zinc-500">Auditoria objetiva do ambiente antes da operacao real.</p></div>
-    <section className="card mb-6 grid items-center gap-6 p-7 md:grid-cols-[auto_1fr]"><div className="grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(#45e68a ${data.score}%,#1c2922 0)` }}><div className="grid h-28 w-28 place-items-center rounded-full bg-panel text-center"><div><strong className="text-4xl">{data.score}</strong><p className="label">/100</p></div></div></div><div><Gauge className="text-neon"/><p className="label mt-3">Readiness Score</p><h2 className="mt-1 text-2xl font-black">{data.classification}</h2><p className="mt-2 text-xs text-zinc-500">Health: {data.healthStatus} - atualizado em {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(data.generatedAt))}</p></div></section>
+    <section className="card mb-6 grid items-center gap-6 p-7 md:grid-cols-[auto_1fr]"><div className="grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(#45e68a ${data.score}%,#1c2922 0)` }}><div className="grid h-28 w-28 place-items-center rounded-full bg-panel text-center"><div><strong className="text-4xl">{data.score}</strong><p className="label">/100</p></div></div></div><div><Gauge className="text-neon"/><p className="label mt-3">Readiness Score</p><h2 className="mt-1 text-2xl font-black">{data.classification}</h2><p className="mt-2 text-xs text-zinc-500">Health: {data.healthStatus} - atualizado em {formatDateTimeBrt(data.generatedAt)}</p></div></section>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">{cards.map(({ label, value, Icon }) => <div className="card p-5" key={label}><Icon size={17} className="text-neon"/><p className="label mt-4">{label}</p><strong className="mt-2 block text-xl">{value}</strong></div>)}</div>
     <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Performance Attribution</p><p className="mt-2 text-xs text-zinc-500">{attribution.totalTipsAnalyzed}/{attribution.minimumSample} TipResult reais analisados. Status: <b className="text-white">{attribution.status}</b>.</p></section>
     <section className="card mt-6 p-5"><p className="text-sm font-black uppercase">Adaptive Strategy</p><p className="mt-2 text-xs text-zinc-500">{adaptive.totalTipsAnalyzed}/{adaptive.minimumSample} TipResult reais analisados. Ajustes aplicados: <b className="text-white">{adaptive.adjustmentsApplied}</b>.</p></section>
