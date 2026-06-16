@@ -7,6 +7,7 @@ import { trainModelIfEligible } from "./modelTrainingService";
 import { trainBaselineModel } from "./mlEngine";
 import { runAutoDiscovery } from "./autoDiscoveryEngine";
 import { recalculateBankrollRecommendations } from "./bankrollEngine";
+import { runRiskMonitoring } from "./riskShieldEngine";
 import { runDataQualityChecks } from "./dataQualityService";
 import { runAutomaticBackup } from "./backupService";
 import { redactSecrets } from "./securityService";
@@ -27,7 +28,7 @@ export const schedulerFrequencies = {
   backup: day,
 };
 
-type JobName = "ODDS_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "AUTO_DISCOVERY" | "BANKROLL_RECALCULATION" | "DATA_QUALITY" | "BACKUP";
+type JobName = "ODDS_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "AUTO_DISCOVERY" | "BANKROLL_RECALCULATION" | "RISK_MONITORING" | "DATA_QUALITY" | "BACKUP";
 const running = new Set<JobName>();
 const schedulerOwnerId = randomUUID();
 
@@ -79,6 +80,7 @@ export function startScheduler() {
   schedule("ML_TRAINING", schedulerFrequencies.dataset, trainBaselineModel);
   schedule("AUTO_DISCOVERY", schedulerFrequencies.dataset, runAutoDiscovery);
   schedule("BANKROLL_RECALCULATION", schedulerFrequencies.performance, recalculateBankrollRecommendations);
+  schedule("RISK_MONITORING", schedulerFrequencies.performance, runRiskMonitoring);
   schedule("DATA_QUALITY", schedulerFrequencies.dataQuality, runDataQualityChecks);
   schedule("BACKUP", schedulerFrequencies.backup, runAutomaticBackup);
 }

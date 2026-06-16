@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { BankrollExposure, BankrollReport, BankrollRiskProfile, StakeRecommendationInput, StakeRecommendationResult, StakeStrategy } from "@/lib/bankrollTypes";
+import { evaluateRiskBeforeTip } from "./riskShieldEngine";
 
 const round = (value: number, digits = 2) => Math.round(value * 10 ** digits) / 10 ** digits;
 
@@ -85,6 +86,19 @@ export async function recommendStake(input: StakeRecommendationInput): Promise<S
     ? calculateKellyStake({ bankroll: profile.currentBankroll, odd: input.odd, modelProbability: input.modelProbability, maxStakePercent: profile.maxStakePercent, fraction: strategy === "KELLY_HALF" ? "HALF" : "QUARTER" })
     : calculateFlatStake({ bankroll: profile.currentBankroll, riskProfile: profile.riskProfile, maxStakePercent: profile.maxStakePercent });
   const result = applyRiskControls({ profile, exposure, recommendation: input, rawStake, strategy });
+  const shield = await evaluateRiskBeforeTip({
+    tipId: input.tipId,
+    matchId: input.matchId,
+    market: input.market,
+    selection: input.selection,
+    competition: input.competition ?? "unknown",
+    bookmaker: input.bookmaker,
+    risk: input.risk,
+    confidenceScore: input.confidenceScore,
+    requestedStake: result.recommendedStake,
+    discoveryStatus: input.discoveryStatus,
+  });
+  const shielded = shield.action === "ALLOW" ? result : shield.action === "REDUCE_STAKE" ? { ...result, recommendedStake: shield.reducedStake ?? 0, stakePercent: round(percentOfBankroll(shield.reducedStake ?? 0, profile.currentBankroll), 4), reason: shield.reason } : { status: "BLOCKED" as const, recommendedStake: 0, stakePercent: 0, strategy: "NO_STAKE" as const, reason: shield.reason };
   await prisma.stakeRecommendation.create({
     data: {
       tipId: input.tipId ?? undefined,
@@ -97,14 +111,14 @@ export async function recommendStake(input: StakeRecommendationInput): Promise<S
       edge: input.edge ?? undefined,
       expectedValue: input.expectedValue ?? undefined,
       risk: input.risk,
-      recommendedStake: result.recommendedStake,
-      stakePercent: result.stakePercent,
-      strategy: result.strategy,
-      status: result.status,
-      reason: result.reason,
+      recommendedStake: shielded.recommendedStake,
+      stakePercent: shielded.stakePercent,
+      strategy: shielded.strategy,
+      status: shielded.status,
+      reason: shielded.reason,
     },
   }).catch(() => undefined);
-  return result;
+  return shielded;
 }
 
 export async function recalculateBankrollRecommendations() {

@@ -7,13 +7,14 @@ import { getSmartConfidenceReport } from "@/services/smartConfidenceEngine";
 import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
 import { getBankrollReport } from "@/services/bankrollEngine";
+import { getRiskShieldReport } from "@/services/riskShieldEngine";
 
 export const dynamic = "force-dynamic";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
 export default async function OddsTodayPage() {
-  const [feed, valueReport, confidence, ml, discovery, bankroll] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport()]);
+  const [feed, valueReport, confidence, ml, discovery, bankroll, riskShield] = await Promise.all([getWorldCupOdds(), buildValueReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport()]);
   const preGameValues = [...valueReport.entries, ...valueReport.watchlist].filter((item) => item.matchStatus === "PRE_GAME");
   return <>
     <PageTitle eyebrow="Pre-jogo" title="Odds do dia" description="Partidas do provider ativo e analise estatistica baseada somente em odds reais persistidas." action={<button className="flex items-center gap-2 rounded-xl border border-line bg-white/[.03] px-5 py-3 text-xs font-bold"><SlidersHorizontal size={15}/> Ajustar filtros</button>}/>
@@ -46,6 +47,12 @@ export default async function OddsTodayPage() {
       <StatCard label="Banca atual" value={bankroll.currentBankroll == null ? "BANKROLL_NOT_CONFIGURED" : bankroll.currentBankroll.toFixed(2)} detail={bankroll.currency ?? "sem perfil"} tone="white"/>
       <StatCard label="Risco diario" value={`${bankroll.dailyRiskUsedPercent.toFixed(2)}%`} detail="limite configurado"/>
       <StatCard label="Exposicao aberta" value={`${bankroll.openExposurePercent.toFixed(2)}%`} detail="tips pendentes" tone="yellow"/>
+    </section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-4">
+      <StatCard label="Risk Shield" value={riskShield.status} detail={riskShield.reason ?? "controle de exposicao"}/>
+      <StatCard label="Bloqueios" value={riskShield.tipsBlocked.toString()} detail="entradas barradas" tone="yellow"/>
+      <StatCard label="Stakes reduzidas" value={riskShield.stakesReduced.toString()} detail="controle automatico"/>
+      <StatCard label="Correlacao" value={riskShield.correlationAlerts.toString()} detail="alertas ativos" tone="white"/>
     </section>
     <section className="card mt-6 overflow-hidden">
       <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Confidence por historico real</p><p className="mt-1 text-[10px] text-zinc-600">Win rate, ROI, drawdown e sampleSize liberados somente com 30 liquidacoes reais</p></div>

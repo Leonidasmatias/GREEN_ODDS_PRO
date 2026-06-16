@@ -547,6 +547,66 @@ model BankrollEvent {
   @@map("bankroll_events")
 }
 
+model RiskRule {
+  id        String   @id @default(cuid())
+  name      String
+  ruleType  String
+  threshold Float
+  severity  String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ruleType, enabled])
+  @@map("risk_rules")
+}
+
+model RiskEvent {
+  id        String   @id @default(cuid())
+  tipId     String?
+  eventType String
+  severity  String
+  action    String
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@index([tipId])
+  @@index([eventType, createdAt])
+  @@index([action, severity])
+  @@map("risk_events")
+}
+
+model ExposureSnapshot {
+  id                  String   @id @default(cuid())
+  bankrollProfileId   String?
+  date                DateTime
+  totalExposure       Float    @default(0)
+  dailyRiskUsed       Float    @default(0)
+  openTips            Int      @default(0)
+  marketExposure      String
+  competitionExposure String
+  bookmakerExposure   String
+  createdAt           DateTime @default(now())
+
+  @@index([bankrollProfileId, date])
+  @@index([createdAt])
+  @@map("exposure_snapshots")
+}
+
+model CorrelationBlock {
+  id          String   @id @default(cuid())
+  matchId     String
+  market      String
+  competition String
+  reason      String
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+
+  @@index([matchId, status])
+  @@index([competition, status])
+  @@map("correlation_blocks")
+}
+
 model SyncRun {
   id                String   @id @default(cuid())
   provider          String
