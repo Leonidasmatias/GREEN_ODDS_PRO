@@ -1,5 +1,6 @@
 import type { OddsApiEvent } from "@/adapters/oddsAdapter";
 import { redactSecrets } from "@/services/securityService";
+import { assertProviderCallAllowed, cacheTtlForEndpoint, logProviderUsage, readProviderCache, writeProviderCache } from "@/services/providerEconomyService";
 import { filterMatches } from "../competitionFilter";
 import type { OddsProvider, ProviderMatch, ProviderOdd, ProviderResponse, ProviderResult } from "../types";
 
@@ -30,17 +31,22 @@ export class TheOddsApiProvider implements OddsProvider {
 
     const url = new URL(`${baseUrl}${path}`);
     Object.entries({ ...params, apiKey }).forEach(([key, value]) => url.searchParams.set(key, value));
+    const cacheKey = `${path}?${new URLSearchParams(params).toString()}`;
+    const cached = await readProviderCache<T>(this.id, cacheKey);
+    if (cached) return { data: cached };
 
     const safeUrl = redactSecrets(url.toString());
     console.log(`[provider-audit] apiKeyPresent=${Boolean(apiKey)}`);
     console.log(`[provider-audit] apiKeyLength=${apiKey.length}`);
     console.log(`[provider-audit] endpoint=${safeUrl}`);
 
+    await assertProviderCallAllowed(this.id, path);
     const response = await fetch(url, {
       cache: "no-store",
       signal: AbortSignal.timeout(12_000),
       headers: { accept: "application/json" },
     });
+    await logProviderUsage({ provider: this.id, endpoint: path, status: response.status, headers: response.headers });
     console.log(`[provider-audit] status=${response.status}`);
 
     if (!response.ok) {
@@ -54,10 +60,9 @@ export class TheOddsApiProvider implements OddsProvider {
       throw new Error(`The Odds API request failed with status ${response.status}${preview ? `: ${preview}` : ""}`);
     }
 
-    return {
-      data: await response.json() as T,
-      remainingLimit: Number(response.headers.get("x-requests-remaining") ?? "") || undefined,
-    };
+    const data = await response.json() as T;
+    await writeProviderCache(this.id, cacheKey, data, cacheTtlForEndpoint(path));
+    return { data, remainingLimit: Number(response.headers.get("x-requests-remaining") ?? "") || undefined };
   }
 
   private sport() {

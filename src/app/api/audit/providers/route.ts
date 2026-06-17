@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redactSecrets } from "@/services/securityService";
+import { isProviderEconomyMode } from "@/services/providerEconomyService";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -63,6 +64,9 @@ function recommendations(input: {
 }
 
 async function auditTheOddsApi(apiKey: string | undefined, sportKey: string) {
+  if (isProviderEconomyMode()) {
+    return { sportsHttpStatus: null, sportsErrorSafe: "PROVIDER_ECONOMY_MODE active; live provider audit skipped", sportSupported: null, sportActive: null };
+  }
   if (!apiKey) {
     return { sportsHttpStatus: null, sportsErrorSafe: "ODDS_API_KEY not configured", sportSupported: null, sportActive: null };
   }

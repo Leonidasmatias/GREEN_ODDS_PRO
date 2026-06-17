@@ -1,6 +1,7 @@
 import { Activity, AlertTriangle, Database, Radio } from "lucide-react";
 import { getProvidersStatus } from "@/providers/providerManager";
 import { formatDateTimeBrt } from "@/lib/timezone";
+import { ProviderSyncButton } from "@/components/ProviderSyncButton";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,22 @@ export default async function AdminProvidersPage() {
       <div className="card p-5"><Database size={17} className="text-gold"/><p className="label mt-4">Prioridade</p><strong className="mt-2 block text-xs">{data.priority.join(" -> ")}</strong></div>
       <div className="card p-5"><AlertTriangle size={17} className={data.providerExhausted ? "text-amber-300" : "text-neon"}/><p className="label mt-4">Exaustao</p><strong className="mt-2 block text-lg">{data.providerExhausted ? "SIM" : "NAO"}</strong></div>
     </div>
+
+    <section className="mt-6 grid gap-4 md:grid-cols-[1fr_280px]">
+      <div className="card grid gap-4 p-5 sm:grid-cols-4">
+        <div><p className="label">Modo economico</p><strong className="mt-2 block text-lg">{data.economyMode ? "ATIVO" : "OFF"}</strong></div>
+        <div><p className="label">Chamadas hoje</p><strong className="mt-2 block text-lg">{data.callsToday}</strong></div>
+        <div><p className="label">Restantes hoje</p><strong className="mt-2 block text-lg text-neon">{data.callsRemainingToday}</strong></div>
+        <div><p className="label">Proximo sync</p><strong className="mt-2 block text-xs">{date(data.nextAllowedSyncAt)}</strong></div>
+      </div>
+      <div className="card p-5"><ProviderSyncButton/></div>
+    </section>
+
+    <section className="card mt-6 p-5">
+      <p className="label">Cache</p>
+      <strong className="mt-2 block text-sm">{data.cacheStatus ? data.cacheStatus.cacheKey : "SEM CACHE"}</strong>
+      <p className="mt-2 text-[11px] text-zinc-500">Expira em: {data.cacheStatus ? date(data.cacheStatus.expiresAt) : "-"}</p>
+    </section>
 
     <section className="card mt-6 overflow-hidden">
       <div className="border-b border-line p-5"><p className="text-sm font-black uppercase">Providers reais</p></div>

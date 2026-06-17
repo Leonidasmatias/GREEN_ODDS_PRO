@@ -3,6 +3,8 @@ import type { AnalyzedOpportunity, GreenClassification, Risk, Signal } from "@/l
 import type { NormalizedOddsEvent } from "@/adapters/oddsAdapter";
 import { getProviderLiveFeed, getProviderResults } from "@/providers/providerManager";
 import { redactSecrets } from "./securityService";
+import { isProviderEconomyMode, getProviderUsageBudget } from "./providerEconomyService";
+import { prisma } from "@/lib/prisma";
 
 export interface OddsFeedResult { mode: "REAL"; provider: string; events: NormalizedOddsEvent[]; games: Game[]; warning?: string; requestsRemaining?: number; updatedAt: string }
 
@@ -10,6 +12,53 @@ function friendlyWarning(value?: string) {
   if (!value) return undefined;
   if (value.includes("Creditos The Odds API esgotados")) return "Créditos The Odds API esgotados. Utilizando provider alternativo.";
   return value.replace(/The Odds API HTTP 401/g, "The Odds API indisponivel para a conta atual");
+}
+
+async function getPersistedOddsFeed(): Promise<OddsFeedResult | null> {
+  const snapshots = await prisma.oddsSnapshot.findMany({
+    orderBy: { capturedAt: "desc" },
+    take: 300,
+    include: { match: true },
+  }).catch(() => []);
+  if (!snapshots.length) return null;
+
+  const latest = snapshots[0]?.capturedAt ?? new Date();
+  const grouped = new Map<string, typeof snapshots>();
+  for (const snapshot of snapshots) grouped.set(snapshot.matchId, [...(grouped.get(snapshot.matchId) ?? []), snapshot]);
+  const events: NormalizedOddsEvent[] = [...grouped.values()].map((items) => {
+    const match = items[0].match;
+    const h2h = items.filter((item) => item.market.toLowerCase().includes("h2h") || item.market.toLowerCase().includes("winner"));
+    const home = Math.max(0, ...h2h.filter((item) => item.selection === match.homeTeam).map((item) => item.odd));
+    const away = Math.max(0, ...h2h.filter((item) => item.selection === match.awayTeam).map((item) => item.odd));
+    const draw = Math.max(0, ...h2h.filter((item) => item.selection.toLowerCase() === "draw" || item.selection.toLowerCase() === "empate").map((item) => item.odd));
+    return {
+      providerId: match.providerId ?? match.id,
+      competition: match.competition,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      startsAt: match.startsAt,
+      status: "PRE_GAME" as const,
+      game: {
+        id: match.providerId ?? match.id,
+        competition: match.competition,
+        group: match.competition,
+        time: match.startsAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
+        home: match.homeTeam,
+        away: match.awayTeam,
+        homeCode: match.homeTeam.slice(0, 3).toUpperCase(),
+        awayCode: match.awayTeam.slice(0, 3).toUpperCase(),
+        status: match.status === "LIVE" ? "Ao vivo" : match.status === "FINISHED" ? "Encerrado" : "Pré-jogo",
+        score: match.homeScore == null ? undefined : `${match.homeScore} - ${match.awayScore}`,
+        odds: { home, draw, away },
+      },
+      snapshots: items.map((odd) => ({ providerEventId: match.providerId ?? match.id, market: odd.market, selection: odd.selection, odd: odd.odd, provider: odd.provider, capturedAt: odd.capturedAt })),
+    };
+  });
+  const budget = await getProviderUsageBudget("the-odds-api");
+  const warning = budget.dailyLimitReached
+    ? "Limite diário do provider atingido. Próxima sincronização disponível amanhã."
+    : "Modo econômico ativo. Exibindo últimos dados disponíveis.";
+  return { mode: "REAL", provider: "persisted-cache", events, games: events.map((event) => event.game), warning, requestsRemaining: budget.creditsRemaining ?? undefined, updatedAt: latest.toISOString() };
 }
 
 function classifyOdd(odd: number): { risk: Risk; signal: Signal; classification: GreenClassification; score: number } {
@@ -52,6 +101,10 @@ export function opportunitiesFromFeed(feed: OddsFeedResult): AnalyzedOpportunity
 
 export async function getWorldCupOdds(): Promise<OddsFeedResult> {
   try {
+    if (isProviderEconomyMode()) {
+      const persisted = await getPersistedOddsFeed();
+      if (persisted) return persisted;
+    }
     const feed = await getProviderLiveFeed();
     const oddsByMatch = new Map<string, typeof feed.odds>();
     for (const odd of feed.odds) oddsByMatch.set(odd.providerEventId, [...(oddsByMatch.get(odd.providerEventId) ?? []), odd]);

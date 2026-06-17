@@ -1049,6 +1049,33 @@ model ProviderCall {
   @@map("provider_calls")
 }
 
+model ProviderCache {
+  id        String   @id @default(cuid())
+  provider  String
+  cacheKey  String
+  payload   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, cacheKey])
+  @@index([provider, expiresAt])
+  @@map("provider_cache")
+}
+
+model ProviderUsageLog {
+  id               String   @id @default(cuid())
+  provider         String
+  endpoint         String
+  status           Int
+  creditsUsed      Int      @default(1)
+  creditsRemaining Int?
+  createdAt        DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([status, createdAt])
+  @@map("provider_usage_logs")
+}
 model SchedulerLease {
   id        String   @id
   ownerId   String

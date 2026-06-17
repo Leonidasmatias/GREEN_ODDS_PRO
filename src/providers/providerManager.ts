@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getProviderUsageBudget, isProviderEconomyMode } from "@/services/providerEconomyService";
 import { redactSecrets } from "@/services/securityService";
 import { ApiFootballProvider } from "./apiFootball";
 import { MockProvider } from "./mockProvider";
@@ -165,17 +166,27 @@ export async function getProviderHealth() {
 }
 
 export async function getProvidersStatus() {
-  const [health, latestExhausted] = await Promise.all([
+  const [health, latestExhausted, budget] = await Promise.all([
     getProviderHealth(),
     prisma.auditLog.findFirst({ where: { category: "provider_exhausted" }, orderBy: { createdAt: "desc" } }).catch(() => null),
+    getProviderUsageBudget("the-odds-api"),
   ]);
   const configuredProviders = priority().filter((provider) => provider.isConfigured()).map((provider) => provider.id);
   const active = health.find((provider) => provider.configured && provider.status === "SUCCESS") ?? health.find((provider) => provider.configured && provider.status === "READY") ?? null;
   return {
+    economyMode: isProviderEconomyMode(),
+    callsToday: budget.callsToday,
+    callsRemainingToday: budget.callsRemainingToday,
+    callsThisHour: budget.callsThisHour,
+    hourlyCallsRemaining: budget.hourlyCallsRemaining,
+    nextAllowedSyncAt: budget.nextAllowedSyncAt,
+    cacheStatus: budget.cacheStatus,
+    creditsRemaining: budget.creditsRemaining,
     activeProvider: active?.id ?? "none",
     configuredProviders,
     priority: priority().map((provider) => provider.id),
     providerExhausted: Boolean(latestExhausted),
+    providerWarnings: [latestExhausted?.message].filter(Boolean),
     exhaustedWarning: latestExhausted?.message ?? null,
     providers: health,
     checkedAt: new Date().toISOString(),
