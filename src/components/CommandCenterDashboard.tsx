@@ -133,7 +133,7 @@ export function CommandCenterDashboard({ initialData }: { initialData: CommandPa
     } finally { setRefreshing(false); }
   }
 
-  useEffect(() => { const timer = window.setInterval(refresh, 30_000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => { void refresh(); const timer = window.setInterval(refresh, 30_000); return () => window.clearInterval(timer); }, []);
 
   const cards = [
     ["Jogos monitorados hoje", data.summary.gamesToday, Crosshair, "text-white"],

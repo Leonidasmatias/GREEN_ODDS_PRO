@@ -39,6 +39,7 @@ function pendingReason(input: {
 
 export async function GET() {
   try {
+    console.log("[command-center] audit request received");
     const [
       matchCount,
       oddsSnapshotCount,
@@ -88,6 +89,7 @@ export async function GET() {
     });
 
     const status = reasons.length ? "PENDING_RESULTS" : "READY";
+    console.log(`[command-center] audit returning 200 status=${status} reason=${reasons[0] ?? "COMMAND_CENTER_READY"}`);
 
     return NextResponse.json({
       status,
@@ -167,6 +169,7 @@ export async function GET() {
       checkedAt: new Date().toISOString(),
     });
   } catch (error) {
+    console.log(`[command-center] audit failed error=${error instanceof Error ? error.message : "unknown"}`);
     return NextResponse.json(
       {
         status: "AUDIT_FAILED",

@@ -15,6 +15,14 @@ function round(value: number, digits = 2) {
   return Math.round(value * factor) / factor;
 }
 
+function realMatchWhere() {
+  return { providerId: { not: { startsWith: "mock" } } };
+}
+
+function realProviderWhere() {
+  return { not: { startsWith: "mock" } };
+}
+
 function performanceFromTips(tips: Array<{ status: string; stake: number; profitLoss: number | null }>) {
   const settled = tips.filter((tip) => tip.status === "WON" || tip.status === "LOST");
   const greens = settled.filter((tip) => tip.status === "WON").length;
@@ -46,11 +54,13 @@ function marketGroup(market: string, selection = "") {
 
 async function getMovements(limit = 20) {
   const snapshots = await prisma.oddsSnapshot.findMany({
+    where: { provider: realProviderWhere(), match: realMatchWhere() },
     include: { match: true },
-    orderBy: { capturedAt: "asc" },
+    orderBy: { capturedAt: "desc" },
+    take: Math.max(limit * 80, 500),
   });
   const groups = new Map<string, typeof snapshots>();
-  for (const snapshot of snapshots) {
+  for (const snapshot of snapshots.reverse()) {
     const key = `${snapshot.matchId}:${snapshot.market}:${snapshot.selection}`;
     groups.set(key, [...(groups.get(key) ?? []), snapshot]);
   }
@@ -74,7 +84,7 @@ async function getMovements(limit = 20) {
 }
 
 async function getTopOpportunities() {
-  const tips = await prisma.tip.findMany({ where: { status: "PENDING" }, orderBy: [{ expectedValue: "desc" }, { confidenceScore: "desc" }], take: 20 });
+  const tips = await prisma.tip.findMany({ where: { status: "PENDING", provider: realProviderWhere(), match: realMatchWhere() }, orderBy: [{ expectedValue: "desc" }, { confidenceScore: "desc" }], take: 20 });
   if (!tips.length) return [];
   return tips.map((tip) => ({ id: tip.id, game: tip.gameLabel, market: tip.market, selection: tip.selection, odd: tip.odd, ev: round(tip.expectedValue * 100), score: round(tip.confidenceScore, 1), powerRating: round(tip.confidenceScore, 1), risk: tip.risk, status: tip.classification }));
 }
@@ -148,10 +158,10 @@ export async function getAlerts() {
 export async function getPerformance() {
   const now = Date.now();
   const [tips7, tips30, tips90, allSettled] = await Promise.all([
-    prisma.tip.findMany({ where: { settledAt: { gte: new Date(now - 7 * DAY) } } }),
-    prisma.tip.findMany({ where: { settledAt: { gte: new Date(now - 30 * DAY) } } }),
-    prisma.tip.findMany({ where: { settledAt: { gte: new Date(now - 90 * DAY) } } }),
-    prisma.tip.findMany({ where: { status: { in: ["WON", "LOST"] } } }),
+    prisma.tip.findMany({ where: { settledAt: { gte: new Date(now - 7 * DAY) }, provider: realProviderWhere(), match: realMatchWhere() } }),
+    prisma.tip.findMany({ where: { settledAt: { gte: new Date(now - 30 * DAY) }, provider: realProviderWhere(), match: realMatchWhere() } }),
+    prisma.tip.findMany({ where: { settledAt: { gte: new Date(now - 90 * DAY) }, provider: realProviderWhere(), match: realMatchWhere() } }),
+    prisma.tip.findMany({ where: { status: { in: ["WON", "LOST"] }, provider: realProviderWhere(), match: realMatchWhere() } }),
   ]);
   const marketNames = ["1X2", "Over 1.5", "Over 2.5", "Over 3.5", "BTTS", "Escanteios", "Cartões", "Handicap"];
   const rankings = marketNames.map((market) => ({ market, ...performanceFromTips(allSettled.filter((tip) => marketGroup(tip.market, tip.selection) === market)) })).sort((a, b) => b.roi - a.roi || b.winRate - a.winRate || b.profit - a.profit);
@@ -161,11 +171,11 @@ export async function getPerformance() {
 export async function getCommandCenter() {
   const today = startOfToday();
   const [gamesToday, oddsToday, generatedToday, settledToday, allTips, latestSync, opportunities, movements, alerts, performance, operational] = await Promise.all([
-    prisma.match.count({ where: { startsAt: { gte: today } } }),
-    prisma.oddsSnapshot.count({ where: { capturedAt: { gte: today } } }),
-    prisma.tip.count({ where: { createdAt: { gte: today } } }),
-    prisma.tip.count({ where: { settledAt: { gte: today } } }),
-    prisma.tip.findMany(),
+    prisma.match.count({ where: { startsAt: { gte: today }, ...realMatchWhere() } }),
+    prisma.oddsSnapshot.count({ where: { capturedAt: { gte: today }, provider: realProviderWhere(), match: realMatchWhere() } }),
+    prisma.tip.count({ where: { createdAt: { gte: today }, provider: realProviderWhere(), match: realMatchWhere() } }),
+    prisma.tip.count({ where: { settledAt: { gte: today }, provider: realProviderWhere(), match: realMatchWhere() } }),
+    prisma.tip.findMany({ where: { status: { in: ["WON", "LOST"] }, provider: realProviderWhere(), match: realMatchWhere() } }),
     prisma.syncRun.findFirst({ orderBy: { startedAt: "desc" } }),
     getTopOpportunities(), getMovements(), getAlerts(), getPerformance(),
     getOperationalStatus(),
@@ -176,12 +186,12 @@ export async function getCommandCenter() {
 
 export async function getAudit() {
   try {
-    const [snapshots, settlements, failedSyncs, logs, matches, tips, datasetRows] = await Promise.all([
-      prisma.oddsSnapshot.count(), prisma.tip.count({ where: { status: { in: ["WON", "LOST", "VOID"] } } }), prisma.syncRun.count({ where: { status: "FAILED" } }), prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 100 }), prisma.match.count(), prisma.tip.count(), prisma.trainingDataset.count(),
+    const [snapshots, settlements, failedSyncs, logs, matches, tips, datasetRows, greenScoreRows, oddsOfDayRows] = await Promise.all([
+      prisma.oddsSnapshot.count(), prisma.tip.count({ where: { status: { in: ["WON", "LOST", "VOID"] } } }), prisma.syncRun.count({ where: { status: "FAILED" } }), prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 100 }), prisma.match.count(), prisma.tip.count(), prisma.trainingDataset.count(), prisma.greenScoreAnalysis.count(), prisma.greenScoreAnalysis.count({ where: { qualifiesOddsOfDay: true } }),
     ]);
     const duplicatesAvoided = logs.filter((log) => log.category === "DUPLICATE").reduce((sum, log) => { try { return sum + Number(JSON.parse(log.metadata ?? "{}").count ?? 0); } catch { return sum; } }, 0);
-    return { summary: { snapshots, settlements, failedSyncs, duplicatesAvoided, matches, tips, datasetRows, databaseIntegrity: "ÍNTEGRO" }, logs: logs.map((log) => ({ ...log, createdAt: log.createdAt.toISOString() })), checkedAt: new Date().toISOString() };
+    return { summary: { snapshots, settlements, failedSyncs, duplicatesAvoided, matches, tips, datasetRows, greenScoreRows, oddsOfDayRows, databaseIntegrity: "ÍNTEGRO" }, logs: logs.map((log) => ({ ...log, createdAt: log.createdAt.toISOString() })), checkedAt: new Date().toISOString() };
   } catch (error) {
-    return { summary: { snapshots: 0, settlements: 0, failedSyncs: 0, duplicatesAvoided: 0, matches: 0, tips: 0, datasetRows: 0, databaseIntegrity: "FALHA" }, logs: [], checkedAt: new Date().toISOString(), error: error instanceof Error ? error.message : "Falha ao auditar o banco" };
+    return { summary: { snapshots: 0, settlements: 0, failedSyncs: 0, duplicatesAvoided: 0, matches: 0, tips: 0, datasetRows: 0, greenScoreRows: 0, oddsOfDayRows: 0, databaseIntegrity: "FALHA" }, logs: [], checkedAt: new Date().toISOString(), error: error instanceof Error ? error.message : "Falha ao auditar o banco" };
   }
 }
