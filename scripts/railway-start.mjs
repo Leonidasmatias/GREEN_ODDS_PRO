@@ -1,5 +1,6 @@
-import { existsSync } from "fs";
+import { cpSync, existsSync, mkdirSync, rmSync } from "fs";
 import { spawn } from "child_process";
+import { relative, resolve } from "path";
 import { PrismaClient } from "@prisma/client";
 
 process.env.NODE_ENV ||= "production";
@@ -26,11 +27,42 @@ if (process.env.DATABASE_URL) {
 }
 
 const standalone = ".next/standalone/server.js";
-const command = existsSync(standalone) ? process.execPath : process.platform === "win32" ? "npx.cmd" : "npx";
-const args = existsSync(standalone) ? [standalone] : ["next", "start", "-H", process.env.HOSTNAME, "-p", process.env.PORT];
+const standaloneReady = existsSync(standalone);
+
+function assertInsideWorkspace(path) {
+  const workspace = resolve(process.cwd());
+  const target = resolve(path);
+  const pathFromWorkspace = relative(workspace, target);
+  if (pathFromWorkspace.startsWith("..") || resolve(pathFromWorkspace) === pathFromWorkspace) {
+    throw new Error(`Refusing to prepare asset path outside workspace: ${target}`);
+  }
+  return target;
+}
+
+function replaceDirectory(source, destination) {
+  const target = assertInsideWorkspace(destination);
+  rmSync(target, { recursive: true, force: true });
+  mkdirSync(resolve(target, ".."), { recursive: true });
+  cpSync(source, target, { recursive: true, force: true });
+}
+
+if (standaloneReady) {
+  replaceDirectory(".next/static", ".next/standalone/.next/static");
+  console.log("[startup] static assets ready");
+
+  if (existsSync("public")) {
+    replaceDirectory("public", ".next/standalone/public");
+  } else {
+    mkdirSync(assertInsideWorkspace(".next/standalone/public"), { recursive: true });
+  }
+  console.log("[startup] public assets ready");
+}
+
+const command = standaloneReady ? process.execPath : process.platform === "win32" ? "npx.cmd" : "npx";
+const args = standaloneReady ? [standalone] : ["next", "start", "-H", process.env.HOSTNAME, "-p", process.env.PORT];
 
 console.log(`[startup] listening host=${process.env.HOSTNAME} port=${process.env.PORT}`);
-console.log(`[startup] server ready command=${existsSync(standalone) ? "standalone" : "next-start"} port=${process.env.PORT}`);
+console.log(`[startup] server ready command=${standaloneReady ? "standalone" : "next-start"} port=${process.env.PORT}`);
 
 const child = spawn(command, args, { stdio: "inherit", env: process.env });
 child.on("error", (error) => {
