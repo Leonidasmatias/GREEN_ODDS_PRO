@@ -1076,6 +1076,126 @@ model ProviderUsageLog {
   @@index([status, createdAt])
   @@map("provider_usage_logs")
 }
+model User {
+  id             String             @id @default(cuid())
+  name           String?
+  email          String             @unique
+  passwordHash   String?
+  emailVerified  DateTime?
+  image          String?
+  role           String             @default("USER")
+  status         String             @default("ACTIVE")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  subscriptions  UserSubscription[]
+  accessLogs     AccessLog[]
+
+  @@index([status, createdAt])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expires])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model SubscriptionPlan {
+  id                 String             @id @default(cuid())
+  code               String             @unique
+  name               String
+  description        String?
+  maxPicksPerDay     Int?
+  greenAiReportLevel String             @default("NONE")
+  commandCenterLevel String             @default("NONE")
+  radarAccess        Boolean            @default(false)
+  oddsAccess         Boolean            @default(false)
+  alertsAccess       Boolean            @default(false)
+  active             Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  subscriptions      UserSubscription[]
+
+  @@index([active, code])
+  @@map("subscription_plans")
+}
+
+model UserSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  planId    String
+  status    String   @default("ACTIVE")
+  startsAt  DateTime @default(now())
+  endsAt    DateTime?
+  source    String   @default("INTERNAL")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@index([planId, status])
+  @@map("user_subscriptions")
+}
+
+model AccessLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  route     String
+  action    String
+  status    String
+  planCode  String?
+  reason    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([route, status, createdAt])
+  @@map("access_logs")
+}
+
 model SchedulerLease {
   id        String   @id
   ownerId   String
