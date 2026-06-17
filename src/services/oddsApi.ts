@@ -6,6 +6,12 @@ import { redactSecrets } from "./securityService";
 
 export interface OddsFeedResult { mode: "REAL"; provider: string; events: NormalizedOddsEvent[]; games: Game[]; warning?: string; requestsRemaining?: number; updatedAt: string }
 
+function friendlyWarning(value?: string) {
+  if (!value) return undefined;
+  if (value.includes("Creditos The Odds API esgotados")) return "Créditos The Odds API esgotados. Utilizando provider alternativo.";
+  return value.replace(/The Odds API HTTP 401/g, "The Odds API indisponivel para a conta atual");
+}
+
 function classifyOdd(odd: number): { risk: Risk; signal: Signal; classification: GreenClassification; score: number } {
   if (odd <= 0) return { risk: "Alto", signal: "Evitar", classification: "EVITAR", score: 0 };
   if (odd <= 1.75) return { risk: "Baixo", signal: "Aguardar", classification: "MODERADO", score: 62 };
@@ -78,9 +84,9 @@ export async function getWorldCupOdds(): Promise<OddsFeedResult> {
         snapshots: odds.map((odd) => ({ providerEventId: odd.providerEventId, market: odd.market, selection: odd.selection, odd: odd.odd, provider: odd.bookmaker, capturedAt: odd.capturedAt })),
       };
     });
-    return { mode: "REAL", provider: feed.provider.id, events, games: events.map((event) => event.game), warning: feed.failoverErrors.join(" | ") || undefined, requestsRemaining: feed.remainingLimit, updatedAt: new Date().toISOString() };
+    return { mode: "REAL", provider: feed.provider.id, events, games: events.map((event) => event.game), warning: friendlyWarning(feed.failoverErrors.join(" | ") || undefined), requestsRemaining: feed.remainingLimit, updatedAt: new Date().toISOString() };
   } catch (error) {
-    return { mode: "REAL", provider: "none", events: [], games: [], warning: redactSecrets(error instanceof Error ? error.message : "Providers indisponiveis"), updatedAt: new Date().toISOString() };
+    return { mode: "REAL", provider: "none", events: [], games: [], warning: friendlyWarning(redactSecrets(error instanceof Error ? error.message : "Providers indisponiveis")), updatedAt: new Date().toISOString() };
   }
 }
 

@@ -16,7 +16,9 @@ import { getPerformanceAttributionReport } from "@/services/performanceAttributi
 import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
 import { getDataQualityReport } from "@/services/dataQualityEngine";
 import { getResultCollectorReport } from "@/services/resultCollectorEngine";
+import { buildGreenScoreReport } from "@/services/greenScoreEngine";
 import { formatDateTimeBrt } from "@/lib/timezone";
+import { requireRouteAccess } from "@/services/authService";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +73,7 @@ function ConfidenceTable({ title, items, labelFor }: { title: string; items: Con
 }
 
 export default async function DashboardPage() {
+  await requireRouteAccess("/dashboard");
   const oddsFeed = await getWorldCupOdds();
   const valueReport = await buildValueReport();
   const settlement = await generateSettlementReport();
@@ -83,6 +86,7 @@ export default async function DashboardPage() {
   const adaptive = await getAdaptiveStrategyReport();
   const dataQuality = await getDataQualityReport();
   const resultCollector = await getResultCollectorReport();
+  const greenScore = await buildGreenScoreReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
   const overviewCards = [
@@ -101,9 +105,27 @@ export default async function DashboardPage() {
 
     {oddsFeed.warning && <div className="mb-6 rounded-xl border border-amber-400/15 bg-amber-400/[.05] px-4 py-3 text-[10px] text-amber-200">{oddsFeed.warning}</div>}
 
+    <section className="mb-6 grid gap-4 md:grid-cols-3">
+      <div className="card p-4">
+        <p className="label">Provider ativo</p>
+        <strong className="mt-2 block text-lg text-white">{oddsFeed.provider}</strong>
+      </div>
+      <div className="card p-4">
+        <p className="label">Créditos restantes</p>
+        <strong className={`mt-2 block text-lg ${oddsFeed.requestsRemaining == null ? "text-zinc-500" : oddsFeed.requestsRemaining <= 5 ? "text-amber-300" : "text-neon"}`}>{oddsFeed.requestsRemaining ?? "N/A"}</strong>
+      </div>
+      <div className="card p-4">
+        <p className="label">Failover</p>
+        <strong className={`mt-2 block text-lg ${oddsFeed.warning?.includes("provider alternativo") ? "text-amber-300" : "text-neon"}`}>{oddsFeed.warning?.includes("provider alternativo") ? "ATIVO" : "NORMAL"}</strong>
+      </div>
+    </section>
+
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">{overviewCards.map(({ label, value, detail, href, icon: Icon, tone }) => <Link href={href} key={label} className="card group p-5 transition hover:-translate-y-0.5 hover:border-neon/25"><div className="flex items-start justify-between"><div className="grid h-9 w-9 place-items-center rounded-xl bg-white/[.04] text-zinc-500 transition group-hover:bg-neon/10 group-hover:text-neon"><Icon size={17}/></div><ArrowRight size={14} className="text-zinc-700 transition group-hover:translate-x-0.5 group-hover:text-neon"/></div><p className="label mt-5">{label}</p><p className={`mt-2 text-3xl font-black tracking-tight ${tone}`}>{value}</p><p className="mt-1 text-[10px] text-zinc-600">{detail}</p></Link>)}</div>
 
     <section className="mt-7"><ValueAuditSummary {...valueReport.audit}/></section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {[["Green Score", `${greenScore.audit.oddsOfDay} Odds do Dia`], ["ELITE_GREEN", greenScore.audit.elite.toString()], ["STRONG_GREEN", greenScore.audit.strong.toString()], ["GREEN", greenScore.audit.green.toString()], ["WATCHLIST", greenScore.audit.watchlist.toString()], ["AVOID", greenScore.audit.avoid.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    </section>
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {[["Entradas pendentes", settlement.pending], ["Entradas liquidadas", settlement.settled], ["WinRate real", `${(settlement.winRate * 100).toFixed(1)}%`], ["ROI real", `${settlement.roi.toFixed(2)}%`], ["Lucro real", `${settlement.profit.toFixed(2)}u`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
     </section>

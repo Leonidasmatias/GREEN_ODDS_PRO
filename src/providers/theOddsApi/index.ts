@@ -4,6 +4,7 @@ import { filterMatches } from "../competitionFilter";
 import type { OddsProvider, ProviderMatch, ProviderOdd, ProviderResponse, ProviderResult } from "../types";
 
 const baseUrl = "https://api.the-odds-api.com/v4";
+const exhaustedCode = "OUT_OF_USAGE_CREDITS";
 
 interface ScoreEvent {
   id: string;
@@ -44,7 +45,13 @@ export class TheOddsApiProvider implements OddsProvider {
 
     if (!response.ok) {
       const preview = redactSecrets((await response.text()).slice(0, 500));
-      throw new Error(`The Odds API HTTP ${response.status}${preview ? `: ${preview}` : ""}`);
+      if (preview.includes(exhaustedCode)) {
+        throw new Error(`PROVIDER_EXHAUSTED: the-odds-api ${exhaustedCode}`);
+      }
+      if (response.status === 401) {
+        throw new Error(`The Odds API authentication failed${preview ? `: ${preview}` : ""}`);
+      }
+      throw new Error(`The Odds API request failed with status ${response.status}${preview ? `: ${preview}` : ""}`);
     }
 
     return {
