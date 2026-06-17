@@ -70,6 +70,38 @@ model ValueAnalysis {
   @@map("value_analyses")
 }
 
+model GreenScoreAnalysis {
+  id                   String   @id @default(cuid())
+  matchId              String
+  oddsSnapshotId       String?
+  provider             String
+  bookmaker            String
+  competition          String
+  gameLabel            String
+  market               String
+  selection            String
+  odd                  Float
+  greenScore           Int
+  confidence           Int
+  risk                 String
+  classification       String
+  qualifiesOddsOfDay   Boolean  @default(false)
+  valueScore           Float    @default(0)
+  valueStatus          String
+  mlStatus             String
+  mlConfidence         Float    @default(0)
+  discoveryStatus      String?
+  riskShieldStatus     String
+  rejectionReasons     String?
+  analyzedAt           DateTime @default(now())
+  createdAt            DateTime @default(now())
+
+  @@index([greenScore, confidence, risk])
+  @@index([classification, analyzedAt])
+  @@index([qualifiesOddsOfDay, analyzedAt])
+  @@map("green_score_analyses")
+}
+
 model Tip {
   id                 String   @id @default(cuid())
   matchId            String
