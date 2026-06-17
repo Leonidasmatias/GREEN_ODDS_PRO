@@ -1,24 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { syncOddsAndTips } from "./syncService";
-import { syncFinishedMatches } from "./resultCollectorEngine";
-import { getPerformance } from "./operationalService";
-import { buildTrainingDataset, generateTrainingMetrics, validateDataset } from "./trainingPipeline";
-import { trainModelIfEligible } from "./modelTrainingService";
-import { trainBaselineModel } from "./mlEngine";
-import { runAutoDiscovery } from "./autoDiscoveryEngine";
-import { recalculateBankrollRecommendations } from "./bankrollEngine";
-import { runRiskMonitoring } from "./riskShieldEngine";
-import { runPerformanceAttribution } from "./performanceAttributionEngine";
-import { runAdaptiveStrategy } from "./adaptiveStrategyEngine";
-import { runDataQualityChecks } from "./dataQualityService";
-import { runAutomaticBackup } from "./backupService";
 import { redactSecrets } from "./securityService";
-import { randomUUID } from "node:crypto";
 
 const minute = 60_000;
 const hour = 60 * minute;
 const day = 24 * hour;
-const intervalMinutes = (name: string, fallback: number) => { const value = Number(process.env[name]); return Number.isFinite(value) && value >= 1 ? value : fallback; };
+const intervalMinutes = (name: string, fallback: number) => {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value >= 1 ? value : fallback;
+};
 
 export const schedulerFrequencies = {
   odds: intervalMinutes("ODDS_SYNC_INTERVAL_MINUTES", 15) * minute,
@@ -31,7 +20,7 @@ export const schedulerFrequencies = {
 
 type JobName = "ODDS_SYNC" | "RESULT_SYNC" | "RESULTS_SYNC" | "SETTLEMENT_SYNC" | "PERFORMANCE_UPDATE" | "TRAINING_DATASET" | "ML_TRAINING" | "AUTO_DISCOVERY" | "BANKROLL_RECALCULATION" | "RISK_MONITORING" | "PERFORMANCE_ATTRIBUTION" | "ADAPTIVE_STRATEGY" | "DATA_QUALITY_AUDIT" | "BACKUP";
 const running = new Set<JobName>();
-const schedulerOwnerId = randomUUID();
+const schedulerOwnerId = globalThis.crypto?.randomUUID?.() ?? `scheduler-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 async function acquireLease(name: JobName, leaseMs: number) {
   const now = new Date();
@@ -55,13 +44,16 @@ async function runJob(name: JobName, task: () => Promise<unknown>) {
   try {
     const result = await task();
     const completedAt = new Date();
-    await prisma.jobRun.update({ where: { id: job.id }, data: { status: "SUCCESS", completedAt, durationMs: completedAt.getTime() - startedAt.getTime(), message: `${name} concluído.`, metadata: JSON.stringify(result) } });
+    await prisma.jobRun.update({ where: { id: job.id }, data: { status: "SUCCESS", completedAt, durationMs: completedAt.getTime() - startedAt.getTime(), message: `${name} concluido.`, metadata: JSON.stringify(result) } });
   } catch (error) {
     const completedAt = new Date();
     const message = redactSecrets(error instanceof Error ? error.message : "Falha desconhecida");
     await prisma.jobRun.update({ where: { id: job.id }, data: { status: "FAILED", completedAt, durationMs: completedAt.getTime() - startedAt.getTime(), message } }).catch(() => undefined);
     await prisma.auditLog.create({ data: { category: "SCHEDULER", status: "FAILED", message: `${name}: ${message}` } }).catch(() => undefined);
-  } finally { running.delete(name); await releaseLease(name); }
+  } finally {
+    running.delete(name);
+    await releaseLease(name);
+  }
 }
 
 function schedule(name: JobName, interval: number, task: () => Promise<unknown>) {
@@ -71,21 +63,34 @@ function schedule(name: JobName, interval: number, task: () => Promise<unknown>)
 
 export function startScheduler() {
   const globalScheduler = globalThis as typeof globalThis & { productionSchedulerStarted?: boolean };
-  if (process.env.SCHEDULER_ENABLED?.trim().toLowerCase() !== "true") return;
+  if (process.env.SCHEDULER_ENABLED?.trim().toLowerCase() !== "true") {
+    console.log("[startup] scheduler disabled by SCHEDULER_ENABLED");
+    return;
+  }
   if (globalScheduler.productionSchedulerStarted) return;
   globalScheduler.productionSchedulerStarted = true;
-  schedule("ODDS_SYNC", schedulerFrequencies.odds, async () => { const result = await syncOddsAndTips(); if (!result.ok) throw new Error(result.warning ?? "Sincronização real indisponível"); return result; });
-  schedule("RESULT_SYNC", schedulerFrequencies.results, syncFinishedMatches);
-  schedule("PERFORMANCE_UPDATE", schedulerFrequencies.performance, getPerformance);
-  schedule("TRAINING_DATASET", schedulerFrequencies.dataset, async () => ({ build: await buildTrainingDataset(), validation: await validateDataset(), metrics: await generateTrainingMetrics(), training: await trainModelIfEligible() }));
-  schedule("ML_TRAINING", schedulerFrequencies.dataset, trainBaselineModel);
-  schedule("AUTO_DISCOVERY", schedulerFrequencies.dataset, runAutoDiscovery);
-  schedule("BANKROLL_RECALCULATION", schedulerFrequencies.performance, recalculateBankrollRecommendations);
-  schedule("RISK_MONITORING", schedulerFrequencies.performance, runRiskMonitoring);
-  schedule("PERFORMANCE_ATTRIBUTION", schedulerFrequencies.performance, runPerformanceAttribution);
-  schedule("ADAPTIVE_STRATEGY", schedulerFrequencies.performance, runAdaptiveStrategy);
-  schedule("DATA_QUALITY_AUDIT", schedulerFrequencies.dataQuality, runDataQualityChecks);
-  schedule("BACKUP", schedulerFrequencies.backup, runAutomaticBackup);
+  console.log("[startup] scheduler enabled");
+
+  schedule("ODDS_SYNC", schedulerFrequencies.odds, async () => {
+    const { syncOddsAndTips } = await import("./syncService");
+    const result = await syncOddsAndTips();
+    if (!result.ok) throw new Error(result.warning ?? "Sincronizacao real indisponivel");
+    return result;
+  });
+  schedule("RESULT_SYNC", schedulerFrequencies.results, async () => (await import("./resultCollectorEngine")).syncFinishedMatches());
+  schedule("PERFORMANCE_UPDATE", schedulerFrequencies.performance, async () => (await import("./operationalService")).getPerformance());
+  schedule("TRAINING_DATASET", schedulerFrequencies.dataset, async () => {
+    const pipeline = await import("./trainingPipeline");
+    const training = await import("./modelTrainingService");
+    return { build: await pipeline.buildTrainingDataset(), validation: await pipeline.validateDataset(), metrics: await pipeline.generateTrainingMetrics(), training: await training.trainModelIfEligible() };
+  });
+  schedule("ML_TRAINING", schedulerFrequencies.dataset, async () => (await import("./mlEngine")).trainBaselineModel());
+  schedule("AUTO_DISCOVERY", schedulerFrequencies.dataset, async () => (await import("./autoDiscoveryEngine")).runAutoDiscovery());
+  schedule("BANKROLL_RECALCULATION", schedulerFrequencies.performance, async () => (await import("./bankrollEngine")).recalculateBankrollRecommendations());
+  schedule("RISK_MONITORING", schedulerFrequencies.performance, async () => (await import("./riskShieldEngine")).runRiskMonitoring());
+  schedule("PERFORMANCE_ATTRIBUTION", schedulerFrequencies.performance, async () => (await import("./performanceAttributionEngine")).runPerformanceAttribution());
+  schedule("ADAPTIVE_STRATEGY", schedulerFrequencies.performance, async () => (await import("./adaptiveStrategyEngine")).runAdaptiveStrategy());
+  schedule("DATA_QUALITY_AUDIT", schedulerFrequencies.dataQuality, async () => (await import("./dataQualityService")).runDataQualityChecks());
 }
 
 export function isSchedulerEnabled() {

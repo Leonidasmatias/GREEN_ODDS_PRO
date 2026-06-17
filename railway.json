@@ -6,7 +6,7 @@
   },
   "deploy": {
     "preDeployCommand": "npm run db:deploy",
-    "startCommand": "npm run start",
+    "startCommand": "node scripts/railway-start.mjs",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
