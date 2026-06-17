@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getProviderHealth } from "@/providers/providerManager";
 
 const DAY = 24 * 60 * 60 * 1000;
 const MOVEMENT_ALERT_LIMIT = 5;
@@ -78,6 +79,57 @@ async function getTopOpportunities() {
   return tips.map((tip) => ({ id: tip.id, game: tip.gameLabel, market: tip.market, selection: tip.selection, odd: tip.odd, ev: round(tip.expectedValue * 100), score: round(tip.confidenceScore, 1), powerRating: round(tip.confidenceScore, 1), risk: tip.risk, status: tip.classification }));
 }
 
+async function getOperationalStatus() {
+  const [
+    providers,
+    jobsExecuted,
+    latestJob,
+    matchesTotal,
+    oddsTotal,
+    latestOddsSync,
+    latestResultSync,
+    matchResultsTotal,
+    latestSettlementRun,
+    latestSettlementAudit,
+  ] = await Promise.all([
+    getProviderHealth().catch(() => []),
+    prisma.jobRun.count({ where: { status: { in: ["SUCCESS", "FAILED"] } } }).catch(() => 0),
+    prisma.jobRun.findFirst({ orderBy: { scheduledAt: "desc" } }).catch(() => null),
+    prisma.match.count().catch(() => 0),
+    prisma.oddsSnapshot.count().catch(() => 0),
+    prisma.syncRun.findFirst({ orderBy: { startedAt: "desc" } }).catch(() => null),
+    prisma.resultSyncRun.findFirst({ orderBy: { startedAt: "desc" } }).catch(() => null),
+    prisma.matchResult.count().catch(() => 0),
+    prisma.settlementRun.findFirst({ orderBy: { startedAt: "desc" } }).catch(() => null),
+    prisma.settlementAudit.findFirst({ orderBy: { createdAt: "desc" } }).catch(() => null),
+  ]);
+  const activeProviders = providers.filter((provider) => provider.licensed && provider.configured);
+  const healthyProviders = activeProviders.filter((provider) => provider.status !== "FAILED");
+  const lastSynchronization =
+    latestResultSync?.finishedAt?.toISOString() ??
+    latestResultSync?.startedAt?.toISOString() ??
+    latestOddsSync?.completedAt?.toISOString() ??
+    latestOddsSync?.startedAt?.toISOString() ??
+    latestJob?.completedAt?.toISOString() ??
+    latestJob?.startedAt?.toISOString() ??
+    null;
+  return {
+    providerStatus: healthyProviders.length ? "ACTIVE" : activeProviders.length ? "CONFIGURED_WITH_WARNINGS" : "NOT_CONFIGURED",
+    provider: healthyProviders[0]?.id ?? activeProviders[0]?.id ?? latestOddsSync?.provider ?? latestResultSync?.provider ?? "NO_ACTIVE_PROVIDER",
+    jobsExecuted,
+    latestJobName: latestJob?.name ?? "NO_JOB_RUN",
+    latestJobStatus: latestJob?.status ?? "NOT_RUN",
+    lastSynchronization,
+    gamesMonitored: matchesTotal,
+    oddsPersisted: oddsTotal,
+    resultsSynced: latestResultSync?.resultsPersisted ?? matchResultsTotal,
+    resultSyncStatus: latestResultSync?.status ?? "NOT_RUN",
+    settlementsDone: latestSettlementAudit?.tipsSettled ?? latestSettlementRun?.tipsSettled ?? 0,
+    settlementStatus: latestSettlementAudit?.status ?? latestSettlementRun?.status ?? "NOT_RUN",
+    settlementRate: latestSettlementAudit?.settlementRate ?? 0,
+  };
+}
+
 export async function getAlerts() {
   const [opportunities, movements] = await Promise.all([getTopOpportunities(), getMovements(50)]);
   const alerts = opportunities.flatMap((item) => {
@@ -108,7 +160,7 @@ export async function getPerformance() {
 
 export async function getCommandCenter() {
   const today = startOfToday();
-  const [gamesToday, oddsToday, generatedToday, settledToday, allTips, latestSync, opportunities, movements, alerts, performance] = await Promise.all([
+  const [gamesToday, oddsToday, generatedToday, settledToday, allTips, latestSync, opportunities, movements, alerts, performance, operational] = await Promise.all([
     prisma.match.count({ where: { startsAt: { gte: today } } }),
     prisma.oddsSnapshot.count({ where: { capturedAt: { gte: today } } }),
     prisma.tip.count({ where: { createdAt: { gte: today } } }),
@@ -116,9 +168,10 @@ export async function getCommandCenter() {
     prisma.tip.findMany(),
     prisma.syncRun.findFirst({ orderBy: { startedAt: "desc" } }),
     getTopOpportunities(), getMovements(), getAlerts(), getPerformance(),
+    getOperationalStatus(),
   ]);
   const totals = performanceFromTips(allTips);
-  return { summary: { gamesToday, oddsToday, generatedToday, settledToday, greens: totals.greens, reds: totals.reds, roi: totals.roi, winRate: totals.winRate, lastSync: latestSync?.completedAt?.toISOString() ?? null, syncStatus: latestSync?.status ?? "NOT_RUN" }, opportunities, movements, alerts, performance, refreshedAt: new Date().toISOString() };
+  return { summary: { gamesToday, oddsToday, generatedToday, settledToday, greens: totals.greens, reds: totals.reds, roi: totals.roi, winRate: totals.winRate, lastSync: latestSync?.completedAt?.toISOString() ?? operational.lastSynchronization, syncStatus: latestSync?.status ?? operational.resultSyncStatus ?? "NOT_RUN" }, opportunities, movements, alerts, performance, operational, refreshedAt: new Date().toISOString() };
 }
 
 export async function getAudit() {

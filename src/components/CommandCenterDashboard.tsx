@@ -10,11 +10,13 @@ type Movement = { id: string; game: string; market: string; selection: string; o
 type Alert = { id: string; level: string; title: string; detail: string; reason: string; timestamp: string | null };
 type Period = { label: string; roi: number; yield: number; winRate: number; greens: number; reds: number };
 type Ranking = { market: string; roi: number; winRate: number; profit: number; entries: number };
-type CommandData = { summary: Summary; opportunities: Opportunity[]; movements: Movement[]; alerts: Alert[]; performance: { periods: Period[]; rankings: Ranking[] }; refreshedAt: string | null; error?: string | null };
+type Operational = { providerStatus: string; provider: string; jobsExecuted: number; latestJobName: string; latestJobStatus: string; lastSynchronization: string | null; gamesMonitored: number; oddsPersisted: number; resultsSynced: number; resultSyncStatus: string; settlementsDone: number; settlementStatus: string; settlementRate: number };
+type CommandData = { summary: Summary; opportunities: Opportunity[]; movements: Movement[]; alerts: Alert[]; performance: { periods: Period[]; rankings: Ranking[] }; operational: Operational; refreshedAt: string | null; error?: string | null };
 type CommandPayload = Partial<CommandData> & { error?: string | null };
 
 const emptySummary: Summary = { gamesToday: 0, oddsToday: 0, generatedToday: 0, settledToday: 0, greens: 0, reds: 0, roi: 0, winRate: 0, lastSync: null, syncStatus: "INSUFFICIENT_REAL_DATA" };
-const emptyData: CommandData = { summary: emptySummary, opportunities: [], movements: [], alerts: [], performance: { periods: [], rankings: [] }, refreshedAt: null, error: null };
+const emptyOperational: Operational = { providerStatus: "PENDING_RESULTS", provider: "NO_ACTIVE_PROVIDER", jobsExecuted: 0, latestJobName: "NO_JOB_RUN", latestJobStatus: "NOT_RUN", lastSynchronization: null, gamesMonitored: 0, oddsPersisted: 0, resultsSynced: 0, resultSyncStatus: "NOT_RUN", settlementsDone: 0, settlementStatus: "NOT_RUN", settlementRate: 0 };
+const emptyData: CommandData = { summary: emptySummary, opportunities: [], movements: [], alerts: [], performance: { periods: [], rankings: [] }, operational: emptyOperational, refreshedAt: null, error: null };
 
 const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : 0;
 const textValue = (value: unknown, fallback = "-") => typeof value === "string" && value.trim() ? value : fallback;
@@ -25,6 +27,7 @@ const signed = (value: number) => `${value > 0 ? "+" : ""}${numberValue(value).t
 function normalizePayload(payload: CommandPayload | null | undefined): CommandData {
   const summary = payload?.summary ?? emptySummary;
   const performance = payload?.performance ?? emptyData.performance;
+  const operational = payload?.operational ?? emptyOperational;
   return {
     summary: {
       gamesToday: numberValue(summary.gamesToday),
@@ -86,6 +89,21 @@ function normalizePayload(payload: CommandPayload | null | undefined): CommandDa
         entries: numberValue(item.entries),
       })),
     },
+    operational: {
+      providerStatus: textValue(operational.providerStatus, "PENDING_RESULTS"),
+      provider: textValue(operational.provider, "NO_ACTIVE_PROVIDER"),
+      jobsExecuted: numberValue(operational.jobsExecuted),
+      latestJobName: textValue(operational.latestJobName, "NO_JOB_RUN"),
+      latestJobStatus: textValue(operational.latestJobStatus, "NOT_RUN"),
+      lastSynchronization: typeof operational.lastSynchronization === "string" ? operational.lastSynchronization : null,
+      gamesMonitored: numberValue(operational.gamesMonitored),
+      oddsPersisted: numberValue(operational.oddsPersisted),
+      resultsSynced: numberValue(operational.resultsSynced),
+      resultSyncStatus: textValue(operational.resultSyncStatus, "NOT_RUN"),
+      settlementsDone: numberValue(operational.settlementsDone),
+      settlementStatus: textValue(operational.settlementStatus, "NOT_RUN"),
+      settlementRate: numberValue(operational.settlementRate),
+    },
     refreshedAt: typeof payload?.refreshedAt === "string" ? payload.refreshedAt : null,
     error: payload?.error ?? null,
   };
@@ -127,6 +145,16 @@ export function CommandCenterDashboard({ initialData }: { initialData: CommandPa
     ["ROI acumulado", `${data.summary.roi.toFixed(2)}%`, Percent, data.summary.roi >= 0 ? "text-neon" : "text-red-400"],
     ["Win Rate", `${data.summary.winRate.toFixed(1)}%`, Activity, "text-gold"],
   ] as const;
+  const operationalCards = [
+    ["Provider Status", data.operational.providerStatus, data.operational.provider],
+    ["Jobs Executados", data.operational.jobsExecuted, `${data.operational.latestJobName} · ${data.operational.latestJobStatus}`],
+    ["Ultima Sincronizacao", formatDate(data.operational.lastSynchronization), data.operational.resultSyncStatus],
+    ["Jogos Monitorados", data.operational.gamesMonitored, "matches"],
+    ["Odds Persistidas", data.operational.oddsPersisted, "odds_snapshots"],
+    ["Resultados Sincronizados", data.operational.resultsSynced, "match_results"],
+    ["Liquidacoes Realizadas", data.operational.settlementsDone, data.operational.settlementStatus],
+    ["Taxa de Liquidacao", `${data.operational.settlementRate.toFixed(1)}%`, "settlement_audits"],
+  ] as const;
   const errorMessage = refreshError ?? data.error;
 
   return <>
@@ -134,6 +162,13 @@ export function CommandCenterDashboard({ initialData }: { initialData: CommandPa
     {errorMessage && <div className="mb-5 flex gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200"><TriangleAlert size={16} className="shrink-0"/><span>{errorMessage}. Dados indisponiveis ficam como INSUFFICIENT_REAL_DATA ou PENDING_RESULTS.</span></div>}
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label,value,Icon,tone]) => <div className="card p-5" key={label}><div className="flex items-center justify-between"><p className="label">{label}</p><Icon size={16} className={tone}/></div><strong className={`mt-4 block break-words text-3xl ${tone}`}>{value}</strong></div>)}</div>
     <div className="card mt-4 flex flex-wrap items-center justify-between gap-3 p-4 text-[11px] text-zinc-500"><span className="flex items-center gap-2"><Clock3 size={14} className="text-neon"/>Última sincronização: <b className="text-white">{formatDate(data.summary.lastSync)}</b></span><span>Status: <b className={data.summary.syncStatus === "SUCCESS" ? "text-neon" : "text-amber-300"}>{data.summary.syncStatus}</b> · atualizado em {formatDate(data.refreshedAt)}</span></div>
+
+    <section className="card mt-6 overflow-hidden">
+      <div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Fallback operacional real</p><p className="mt-1 text-[10px] text-zinc-600">Contagens persistidas enquanto a base real de resultados liquidados cresce organicamente.</p></div>
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4">
+        {operationalCards.map(([label, value, detail]) => <div className="border-b border-line/60 p-5 sm:border-r" key={label}><p className="label">{label}</p><strong className="mt-3 block break-words text-xl text-white">{value}</strong><span className="mt-2 block break-words text-[10px] text-zinc-600">{detail}</span></div>)}
+      </div>
+    </section>
 
     <section className="card mt-6 overflow-hidden"><div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Top 20 oportunidades</p><p className="mt-1 text-[10px] text-zinc-600">Priorização em tempo real por EV e score</p></div><div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Jogo</th><th>Mercado</th><th>Odd</th><th>EV</th><th>Score</th><th>Power Rating</th><th>Risco</th><th>Status</th></tr></thead><tbody>{data.opportunities.length ? data.opportunities.map((item) => <tr key={item.id} className="border-b border-line/60"><td className="px-5 py-4 font-black">{item.game}</td><td>{item.market}<span className="block text-[9px] text-zinc-600">{item.selection}</span></td><td className="font-black text-gold">{item.odd.toFixed(2)}</td><td className="font-black text-neon">{signed(item.ev)}</td><td>{item.score.toFixed(1)}</td><td>{item.powerRating.toFixed(1)}</td><td>{item.risk}</td><td className="font-black text-neon">{item.status}</td></tr>) : <EmptyRow colSpan={8} message="INSUFFICIENT_REAL_DATA: nenhuma oportunidade pendente disponivel."/>}</tbody></table></div></section>
 
