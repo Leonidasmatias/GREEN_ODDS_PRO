@@ -27,11 +27,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         setError(data.error ?? "AUTH_REQUEST_FAILED");
         return;
       }
-      setMessage(mode === "login" ? data.message ?? "LOGIN_SUCCESS" : "CONTA_CRIADA");
-      setTimeout(() => {
-        router.push("/dashboard");
-        router.refresh();
-      }, 250);
+      const successMessage = mode === "login" ? data.message ?? "LOGIN_SUCCESS" : "CONTA_CRIADA";
+      setMessage(successMessage);
+      if (mode === "login") console.log("[AUTH] login success");
+      console.log("[AUTH] redirecting dashboard");
+      router.replace("/dashboard");
+      router.refresh();
+      console.log("[AUTH] redirect completed");
+      window.setTimeout(() => {
+        if (window.location.pathname !== "/dashboard") window.location.assign("/dashboard");
+      }, 750);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "AUTH_REQUEST_FAILED");
     } finally {
