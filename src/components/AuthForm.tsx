@@ -31,11 +31,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       setMessage(successMessage);
       if (mode === "login") console.log("[AUTH] login success");
       console.log("[AUTH] redirecting dashboard");
-      router.replace("/dashboard");
-      router.refresh();
+      window.location.assign("/dashboard");
       console.log("[AUTH] redirect completed");
       window.setTimeout(() => {
-        if (window.location.pathname !== "/dashboard") window.location.assign("/dashboard");
+        if (window.location.pathname !== "/dashboard") router.replace("/dashboard");
       }, 750);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "AUTH_REQUEST_FAILED");
