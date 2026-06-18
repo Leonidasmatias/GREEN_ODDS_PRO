@@ -2,8 +2,13 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs" || process.env.NEXT_PHASE === "phase-production-build") return;
 
   console.log("[startup] ENV loaded");
-  const schedulerEnabled = process.env.SCHEDULER_ENABLED?.trim().toLowerCase() === "true";
+  const schedulerConfigured = process.env.SCHEDULER_ENABLED?.trim().toLowerCase() === "true";
+  const schedulerProcess = process.env.SCHEDULER_PROCESS?.trim().toLowerCase() === "true";
+  const schedulerEnabled = schedulerConfigured && schedulerProcess;
   console.log(`[startup] scheduler ${schedulerEnabled ? "enabled" : "disabled"}`);
+  if (schedulerConfigured && !schedulerProcess) {
+    console.log("[startup] scheduler skipped for web process");
+  }
 
   if (process.env.DATABASE_URL) {
     const { prisma } = await import("./lib/prisma");
