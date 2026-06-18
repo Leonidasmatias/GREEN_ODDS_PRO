@@ -12,7 +12,8 @@ export class ApiFootballProvider implements OddsProvider {
   isConfigured() { return Boolean(process.env.FOOTBALL_API_KEY?.trim()); }
   private async request(path: string, params: Record<string,string>={}):Promise<ProviderResponse<Json[]>>{
     const key=process.env.FOOTBALL_API_KEY?.trim();if(!key)throw new Error("FOOTBALL_API_KEY não configurada");
-    const url=new URL(`${process.env.API_FOOTBALL_BASE_URL?.trim()||"https://v3.football.api-sports.io"}${path}`);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+    const baseUrl = process.env.FOOTBALL_API_BASE_URL?.trim() || process.env.API_FOOTBALL_BASE_URL?.trim() || "https://v3.football.api-sports.io";
+    const url=new URL(`${baseUrl}${path}`);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
     const response=await fetch(url,{cache:"no-store",headers:{"x-apisports-key":key},signal:AbortSignal.timeout(12_000)});if(!response.ok)throw new Error(`API-Football HTTP ${response.status}`);
     const body=await response.json() as {response?:Json[]};return{data:body.response??[],remainingLimit:Number(response.headers.get("x-ratelimit-requests-remaining")??"")||undefined};
   }

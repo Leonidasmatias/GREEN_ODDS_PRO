@@ -24,6 +24,19 @@ function priority() {
   return configured.map((id) => providers[id]).filter((provider): provider is OddsProvider => Boolean(provider));
 }
 
+function oddsPriority() {
+  return priority().filter((provider) => provider.id !== "api-football" && provider.id !== "mock");
+}
+
+function resultPriority() {
+  const prioritized = process.env.FOOTBALL_API_KEY?.trim()
+    ? ["api-football", ...priority().map((provider) => provider.id)]
+    : priority().map((provider) => provider.id);
+  return [...new Set(prioritized)]
+    .map((id) => providers[id])
+    .filter((provider): provider is OddsProvider => Boolean(provider && provider.id !== "mock"));
+}
+
 function isProviderExhausted(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return message.includes("PROVIDER_EXHAUSTED") || message.includes("OUT_OF_USAGE_CREDITS");
@@ -77,9 +90,9 @@ async function monitoredCall<T>(provider: OddsProvider, operation: string, call:
   }
 }
 
-async function failover<T>(operation: string, call: (provider: OddsProvider) => Promise<ProviderResponse<T>>, accept: (data: T) => boolean) {
+async function failover<T>(operation: string, call: (provider: OddsProvider) => Promise<ProviderResponse<T>>, accept: (data: T) => boolean, candidates = priority()) {
   const errors: string[] = [];
-  for (const provider of priority()) {
+  for (const provider of candidates) {
     if (!provider.isConfigured()) {
       errors.push(`${provider.id}: nao configurado`);
       continue;
@@ -99,24 +112,24 @@ async function failover<T>(operation: string, call: (provider: OddsProvider) => 
 }
 
 export async function getProviderMatches() {
-  return failover<ProviderMatch[]>("getMatches", (provider) => provider.getMatches(), (data) => data.length > 0);
+  return failover<ProviderMatch[]>("getMatches", (provider) => provider.getMatches(), (data) => data.length > 0, oddsPriority());
 }
 
 export async function getProviderOdds() {
-  return failover<ProviderOdd[]>("getOdds", (provider) => provider.getOdds(), (data) => data.length > 0);
+  return failover<ProviderOdd[]>("getOdds", (provider) => provider.getOdds(), (data) => data.length > 0, oddsPriority());
 }
 
 export async function getProviderResults() {
-  return failover<ProviderResult[]>("getResults", (provider) => provider.getResults(), () => true);
+  return failover<ProviderResult[]>("getResults", (provider) => provider.getResults(), () => true, resultPriority());
 }
 
 export async function getProviderMarkets() {
-  return failover<string[]>("getMarkets", (provider) => provider.getMarkets(), (data) => data.length > 0);
+  return failover<string[]>("getMarkets", (provider) => provider.getMarkets(), (data) => data.length > 0, oddsPriority());
 }
 
 export async function getProviderLiveFeed() {
   const errors: string[] = [];
-  for (const provider of priority()) {
+  for (const provider of oddsPriority()) {
     if (!provider.isConfigured()) {
       errors.push(`${provider.id}: nao configurado`);
       continue;
@@ -172,6 +185,8 @@ export async function getProvidersStatus() {
     getProviderUsageBudget("the-odds-api"),
   ]);
   const configuredProviders = priority().filter((provider) => provider.isConfigured()).map((provider) => provider.id);
+  const oddsProviders = oddsPriority().map((provider) => provider.id);
+  const resultProviders = resultPriority().map((provider) => provider.id);
   const active = health.find((provider) => provider.configured && provider.status === "SUCCESS") ?? health.find((provider) => provider.configured && provider.status === "READY") ?? null;
   return {
     economyMode: isProviderEconomyMode(),
@@ -185,6 +200,9 @@ export async function getProvidersStatus() {
     activeProvider: active?.id ?? "none",
     configuredProviders,
     priority: priority().map((provider) => provider.id),
+    oddsProviders,
+    resultProviders,
+    resultProvider: resultProviders.find((id) => providers[id]?.isConfigured()) ?? "none",
     providerExhausted: Boolean(latestExhausted),
     providerWarnings: [latestExhausted?.message].filter(Boolean),
     exhaustedWarning: latestExhausted?.message ?? null,
@@ -194,5 +212,5 @@ export async function getProvidersStatus() {
 }
 
 export function getProviderConfiguration() {
-  return { priority: priority().map((provider) => provider.id), competitionFilter: process.env.COMPETITION_FILTER?.trim() || "ALL" };
+  return { priority: priority().map((provider) => provider.id), oddsProviders: oddsPriority().map((provider) => provider.id), resultProviders: resultPriority().map((provider) => provider.id), competitionFilter: process.env.COMPETITION_FILTER?.trim() || "ALL" };
 }

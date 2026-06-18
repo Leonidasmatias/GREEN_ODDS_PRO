@@ -122,12 +122,15 @@ export async function GET() {
           }
         : null,
       provider: latestRun?.provider ?? providers.activeProvider,
+      resultProvider: providers.resultProvider,
       resultSources: {
         apiFootballConfigured: config.apiFootball,
         sportMonksConfigured: config.sportMonks,
         theOddsApiConfigured: config.theOddsApi,
         priority: config.priority,
         activeProvider: providers.activeProvider,
+        oddsProviders: providers.oddsProviders,
+        resultProviders: providers.resultProviders,
         configuredProviders: providers.configuredProviders,
       },
       matchesOpen,
