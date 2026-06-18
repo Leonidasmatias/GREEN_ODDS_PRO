@@ -108,8 +108,16 @@ export async function registerUser(input: { name?: string; email: string; passwo
 export async function loginUser(input: { email: string; password: string }) {
   const email = normalizeEmail(input.email);
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !verifyPassword(input.password, user.passwordHash)) {
-    await logAccess({ route: "/login", action: "LOGIN", status: "DENIED", reason: "INVALID_CREDENTIALS" });
+  if (!user) {
+    await logAccess({ route: "/login", action: "LOGIN", status: "DENIED", reason: "USER_NOT_FOUND" });
+    throw new Error("USER_NOT_FOUND");
+  }
+  if (user.status !== "ACTIVE") {
+    await logAccess({ userId: user.id, route: "/login", action: "LOGIN", status: "DENIED", reason: "ACCOUNT_INACTIVE" });
+    throw new Error("ACCOUNT_INACTIVE");
+  }
+  if (!verifyPassword(input.password, user.passwordHash)) {
+    await logAccess({ userId: user.id, route: "/login", action: "LOGIN", status: "DENIED", reason: "INVALID_CREDENTIALS" });
     throw new Error("INVALID_CREDENTIALS");
   }
   await createSession(user.id);
