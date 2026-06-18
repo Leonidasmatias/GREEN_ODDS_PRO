@@ -6,7 +6,19 @@ import { redactSecrets } from "./securityService";
 import { isProviderEconomyMode, getProviderUsageBudget } from "./providerEconomyService";
 import { prisma } from "@/lib/prisma";
 
-export interface OddsFeedResult { mode: "REAL"; provider: string; events: NormalizedOddsEvent[]; games: Game[]; warning?: string; requestsRemaining?: number; updatedAt: string }
+export interface OddsFeedResult {
+  mode: "REAL";
+  provider: string;
+  events: NormalizedOddsEvent[];
+  games: Game[];
+  warning?: string;
+  requestsRemaining?: number;
+  updatedAt: string;
+  lastSyncAt: string | null;
+  screenUpdatedAt: string;
+  cacheSince: string | null;
+  cacheMode: boolean;
+}
 
 function friendlyWarning(value?: string) {
   if (!value) return undefined;
@@ -23,6 +35,7 @@ async function getPersistedOddsFeed(): Promise<OddsFeedResult | null> {
   if (!snapshots.length) return null;
 
   const latest = snapshots[0]?.capturedAt ?? new Date();
+  const latestSync = await prisma.syncRun.findFirst({ where: { status: "SUCCESS" }, orderBy: { completedAt: "desc" } }).catch(() => null);
   const grouped = new Map<string, typeof snapshots>();
   for (const snapshot of snapshots) grouped.set(snapshot.matchId, [...(grouped.get(snapshot.matchId) ?? []), snapshot]);
   const events: NormalizedOddsEvent[] = [...grouped.values()].map((items) => {
@@ -58,7 +71,19 @@ async function getPersistedOddsFeed(): Promise<OddsFeedResult | null> {
   const warning = budget.dailyLimitReached
     ? "Limite diário do provider atingido. Próxima sincronização disponível amanhã."
     : "Modo econômico ativo. Exibindo últimos dados disponíveis.";
-  return { mode: "REAL", provider: "persisted-cache", events, games: events.map((event) => event.game), warning, requestsRemaining: budget.creditsRemaining ?? undefined, updatedAt: latest.toISOString() };
+  return {
+    mode: "REAL",
+    provider: "persisted-cache",
+    events,
+    games: events.map((event) => event.game),
+    warning,
+    requestsRemaining: budget.creditsRemaining ?? undefined,
+    updatedAt: latest.toISOString(),
+    lastSyncAt: latestSync?.completedAt?.toISOString() ?? latest.toISOString(),
+    screenUpdatedAt: new Date().toISOString(),
+    cacheSince: latest.toISOString(),
+    cacheMode: true,
+  };
 }
 
 function classifyOdd(odd: number): { risk: Risk; signal: Signal; classification: GreenClassification; score: number } {
@@ -137,9 +162,34 @@ export async function getWorldCupOdds(): Promise<OddsFeedResult> {
         snapshots: odds.map((odd) => ({ providerEventId: odd.providerEventId, market: odd.market, selection: odd.selection, odd: odd.odd, provider: odd.bookmaker, capturedAt: odd.capturedAt })),
       };
     });
-    return { mode: "REAL", provider: feed.provider.id, events, games: events.map((event) => event.game), warning: friendlyWarning(feed.failoverErrors.join(" | ") || undefined), requestsRemaining: feed.remainingLimit, updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    return {
+      mode: "REAL",
+      provider: feed.provider.id,
+      events,
+      games: events.map((event) => event.game),
+      warning: friendlyWarning(feed.failoverErrors.join(" | ") || undefined),
+      requestsRemaining: feed.remainingLimit,
+      updatedAt: now,
+      lastSyncAt: now,
+      screenUpdatedAt: now,
+      cacheSince: null,
+      cacheMode: false,
+    };
   } catch (error) {
-    return { mode: "REAL", provider: "none", events: [], games: [], warning: friendlyWarning(redactSecrets(error instanceof Error ? error.message : "Providers indisponiveis")), updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    return {
+      mode: "REAL",
+      provider: "none",
+      events: [],
+      games: [],
+      warning: friendlyWarning(redactSecrets(error instanceof Error ? error.message : "Providers indisponiveis")),
+      updatedAt: now,
+      lastSyncAt: null,
+      screenUpdatedAt: now,
+      cacheSince: null,
+      cacheMode: false,
+    };
   }
 }
 

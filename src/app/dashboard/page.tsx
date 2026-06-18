@@ -22,7 +22,7 @@ import { requireRouteAccess } from "@/services/authService";
 
 export const dynamic = "force-dynamic";
 
-const formatDate = (value: string) => formatDateTimeBrt(value);
+const formatDate = (value: string | null | undefined) => formatDateTimeBrt(value, "Ainda nao executado");
 
 type RankingRow = {
   id?: string;
@@ -89,6 +89,10 @@ export default async function DashboardPage() {
   const greenScore = await buildGreenScoreReport();
   const games = oddsFeed.games;
   const liveGames = games.filter((game) => game.status === "Ao vivo").length;
+  const feedTiming = [
+    `Ultimo sync real: ${formatDate(oddsFeed.lastSyncAt)}`,
+    `Atualizado na tela: ${formatDate(oddsFeed.screenUpdatedAt)}`,
+  ];
   const overviewCards = [
     { label: "Jogos carregados", value: games.length.toString().padStart(2, "0"), detail: oddsFeed.provider, href: "/odds-do-dia", icon: CalendarDays, tone: "text-white" },
     { label: "Ao vivo", value: liveGames.toString().padStart(2, "0"), detail: "partidas do provider", href: "/live-monitor", icon: Radio, tone: "text-red-400" },
@@ -100,7 +104,7 @@ export default async function DashboardPage() {
 
   return <>
     <section className="relative mb-6 overflow-hidden rounded-3xl border border-line bg-[radial-gradient(circle_at_82%_10%,rgba(69,230,138,.13),transparent_30%),linear-gradient(135deg,#121a16,#08100c)] p-6 shadow-glow md:p-9">
-      <div className="relative max-w-3xl"><div className="mb-4 inline-flex items-center gap-2 rounded-full border border-neon/20 bg-neon/[.06] px-3 py-1.5 text-[9px] font-black uppercase tracking-[.2em] text-neon"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neon"/> Provider ativo · {oddsFeed.provider}</div><h1 className="max-w-2xl text-4xl font-black leading-[1.05] md:text-6xl">Radar inteligente para odds com <span className="text-neon">dados reais.</span></h1><p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400">Feed atualizado em {formatDate(oddsFeed.updatedAt)} · {games.length} jogos carregados.</p><div className="mt-7 flex flex-wrap gap-3"><Link href="/odds-do-dia" className="flex items-center gap-2 rounded-xl bg-neon px-6 py-3.5 text-xs font-black uppercase tracking-wider text-[#041008]">Ver odds do dia <ArrowRight size={16}/></Link><Link href="/radar-green" className="flex items-center gap-2 rounded-xl border border-gold/20 bg-gold/[.06] px-6 py-3.5 text-xs font-black uppercase tracking-wider text-gold">Abrir radar <Crosshair size={15}/></Link></div></div>
+      <div className="relative max-w-3xl"><div className="mb-4 inline-flex items-center gap-2 rounded-full border border-neon/20 bg-neon/[.06] px-3 py-1.5 text-[9px] font-black uppercase tracking-[.2em] text-neon"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neon"/> Provider ativo · {oddsFeed.provider}</div><h1 className="max-w-2xl text-4xl font-black leading-[1.05] md:text-6xl">Radar inteligente para odds com <span className="text-neon">dados reais.</span></h1><p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400">{feedTiming.join(" · ")} · {games.length} jogos carregados.</p>{oddsFeed.cacheMode && oddsFeed.cacheSince && <p className="mt-2 text-xs text-amber-200">Dados em cache desde {formatDate(oddsFeed.cacheSince)}.</p>}<div className="mt-7 flex flex-wrap gap-3"><Link href="/odds-do-dia" className="flex items-center gap-2 rounded-xl bg-neon px-6 py-3.5 text-xs font-black uppercase tracking-wider text-[#041008]">Ver odds do dia <ArrowRight size={16}/></Link><Link href="/radar-green" className="flex items-center gap-2 rounded-xl border border-gold/20 bg-gold/[.06] px-6 py-3.5 text-xs font-black uppercase tracking-wider text-gold">Abrir radar <Crosshair size={15}/></Link></div></div>
     </section>
 
     {oddsFeed.warning && <div className="mb-6 rounded-xl border border-amber-400/15 bg-amber-400/[.05] px-4 py-3 text-[10px] text-amber-200">{oddsFeed.warning}</div>}
@@ -176,14 +180,14 @@ export default async function DashboardPage() {
       <ConfidenceTable title="BookmakerConfidence" items={ranking.smartConfidence.topBookmakers} labelFor={(item) => item.bookmaker ?? "-"}/>
       <ConfidenceTable title="OddRangeConfidence" items={ranking.smartConfidence.topOddRanges} labelFor={(item) => item.oddRange ?? "-"}/>
     </div>
-    <section className="card mt-7 overflow-hidden"><div className="flex items-center justify-between border-b border-line px-5 py-5"><div><p className="text-sm font-black uppercase tracking-[.14em]">Entradas green validadas</p><p className="mt-1 text-[10px] text-zinc-600">{oddsFeed.provider} · atualizado em {formatDate(oddsFeed.updatedAt)}</p></div><Link href="/radar-green" className="text-[9px] font-black uppercase tracking-wider text-neon">Abrir radar</Link></div><ValueOpportunityTable items={valueReport.entries}/></section>
+    <section className="card mt-7 overflow-hidden"><div className="flex items-center justify-between border-b border-line px-5 py-5"><div><p className="text-sm font-black uppercase tracking-[.14em]">Entradas green validadas</p><p className="mt-1 text-[10px] text-zinc-600">{oddsFeed.provider} · ultimo sync real: {formatDate(oddsFeed.lastSyncAt)}</p>{oddsFeed.cacheMode && oddsFeed.cacheSince && <p className="mt-1 text-[10px] text-amber-300">Dados em cache desde {formatDate(oddsFeed.cacheSince)}</p>}</div><Link href="/radar-green" className="text-[9px] font-black uppercase tracking-wider text-neon">Abrir radar</Link></div><ValueOpportunityTable items={valueReport.entries}/></section>
 
     <div className="mt-7 grid gap-6 xl:grid-cols-[1.65fr_.55fr]">
       <section><OddsTable games={games}/></section>
       <section className="card overflow-hidden p-6">
         <div className="flex items-center justify-between"><div><p className="label text-neon">Feed do mercado</p><h2 className="mt-2 text-xl font-black">Resumo da API</h2></div><div className="grid h-11 w-11 place-items-center rounded-xl bg-neon/10 text-neon"><Activity/></div></div>
         <div className="my-7 text-center"><p className="text-6xl font-black tracking-tighter">{games.length}</p><p className="mt-2 text-xs text-zinc-500">partidas carregadas</p></div>
-        <div className="space-y-3 text-xs text-zinc-500"><p>Provider: <b className="text-white">{oddsFeed.provider}</b></p><p>Ultima atualizacao: <b className="text-white">{formatDate(oddsFeed.updatedAt)}</b></p><p>Odds analisadas: <b className="text-white">{valueReport.audit.analyzed}</b></p><p>Entradas aprovadas: <b className="text-white">{valueReport.audit.approved}</b></p></div>
+        <div className="space-y-3 text-xs text-zinc-500"><p>Provider: <b className="text-white">{oddsFeed.provider}</b></p><p>Ultimo sync real: <b className="text-white">{formatDate(oddsFeed.lastSyncAt)}</b></p><p>Atualizado na tela: <b className="text-white">{formatDate(oddsFeed.screenUpdatedAt)}</b></p>{oddsFeed.cacheMode && oddsFeed.cacheSince && <p>Dados em cache desde: <b className="text-amber-300">{formatDate(oddsFeed.cacheSince)}</b></p>}<p>Odds analisadas: <b className="text-white">{valueReport.audit.analyzed}</b></p><p>Entradas aprovadas: <b className="text-white">{valueReport.audit.approved}</b></p></div>
       </section>
     </div>
 
@@ -191,3 +195,4 @@ export default async function DashboardPage() {
     <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }
+
