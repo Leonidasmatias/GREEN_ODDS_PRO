@@ -6,3 +6,5 @@ node_modules/
 backups/
 prisma/dev.db
 *.log
+
+tsconfig.tsbuildinfo
