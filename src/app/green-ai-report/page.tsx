@@ -1,73 +1,50 @@
-import { Activity, ArrowDownRight, ArrowUpRight, BrainCircuit } from "lucide-react";
-import { ValueAuditSummary } from "@/components/ValueOpportunityTable";
+import { Activity, BrainCircuit, ShieldCheck } from "lucide-react";
 import { CreatorSignature } from "@/components/CreatorSignature";
-import { getGreenAiReport } from "@/services/greenAiEngine";
-import { buildValueReport } from "@/services/valueEngine";
-import { generateSettlementReport } from "@/services/settlementEngine";
-import { getSmartConfidenceReport } from "@/services/smartConfidenceEngine";
+import { GreenScoreSummary, GreenScoreTable } from "@/components/GreenScoreTable";
+import { StatCard } from "@/components/ui";
+import { buildGreenScoreReport } from "@/services/greenScoreEngine";
 import { generateModelReport } from "@/services/mlEngine";
 import { getAutoDiscoveryReport } from "@/services/autoDiscoveryEngine";
-import { getBankrollReport } from "@/services/bankrollEngine";
 import { getRiskShieldReport } from "@/services/riskShieldEngine";
-import { getPerformanceAttributionReport } from "@/services/performanceAttributionEngine";
-import { getAdaptiveStrategyReport } from "@/services/adaptiveStrategyEngine";
-import { getDataQualityReport } from "@/services/dataQualityEngine";
-import { getResultCollectorReport } from "@/services/resultCollectorEngine";
+import { getSmartConfidenceReport } from "@/services/smartConfidenceEngine";
+import { formatDateTimeBrt } from "@/lib/timezone";
+import { requireRouteAccess } from "@/services/authService";
+import { limitItemsByPlan } from "@/services/subscriptionAccess";
 
 export const dynamic = "force-dynamic";
 
 export default async function GreenAiReportPage() {
-  const [report, valueReport, settlement, confidence, ml, discovery, bankroll, riskShield, attribution, adaptive, dataQuality, resultCollector] = await Promise.all([getGreenAiReport(), buildValueReport(), generateSettlementReport(), getSmartConfidenceReport(), generateModelReport(), getAutoDiscoveryReport(), getBankrollReport(), getRiskShieldReport(), getPerformanceAttributionReport(), getAdaptiveStrategyReport(), getDataQualityReport(), getResultCollectorReport()]);
+  const context = await requireRouteAccess("/green-ai-report");
+  const [green, ml, discovery, riskShield, confidence] = await Promise.all([
+    buildGreenScoreReport(),
+    generateModelReport(),
+    getAutoDiscoveryReport(),
+    getRiskShieldReport(),
+    getSmartConfidenceReport(),
+  ]);
+
   return <>
-    <div className="mb-7"><p className="label mb-2 text-neon">Relatório executivo AI</p><h1 className="text-3xl font-black tracking-tight md:text-4xl">Evolução e performance histórica</h1><p className="mt-2 max-w-3xl text-sm text-zinc-500">Leitura probabilística do modelo, mercados e backtests baseada exclusivamente nos registros disponíveis.</p></div>
-    <section className="mb-6"><ValueAuditSummary {...valueReport.audit}/></section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      {[["Pendentes", settlement.pending], ["Liquidadas", settlement.settled], ["WinRate real", `${(settlement.winRate * 100).toFixed(1)}%`], ["ROI real", `${settlement.roi.toFixed(2)}%`], ["Lucro real", `${settlement.profit.toFixed(2)}u`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    <div className="mb-7"><p className="label mb-2 text-neon">Green AI Report</p><h1 className="text-3xl font-black tracking-tight md:text-4xl">Green Intelligence Center</h1><p className="mt-2 max-w-3xl text-sm text-zinc-500">Relatorio auditavel do Green Score Engine integrado aos engines de valor, confianca, ML, discovery e risco.</p></div>
+    <GreenScoreSummary audit={green.audit}/>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <StatCard label="ML Engine" value={ml.status} detail={ml.blockReason ?? ml.modelVersion ?? "modelo real"} tone="white"/>
+      <StatCard label="Confidence Engine" value={confidence.status} detail={`${confidence.sourceRows}/${confidence.minimumSample} reais`}/>
+      <StatCard label="Discovery Patterns" value={discovery.status} detail={`${discovery.patternsFound} padroes`} tone="yellow"/>
+      <StatCard label="Risk Shield" value={riskShield.status} detail={riskShield.reason ?? `${riskShield.tipsBlocked} bloqueios`} tone="white"/>
+      <StatCard label="Gerado" value={formatDateTimeBrt(green.updatedAt)} detail={green.provider}/>
     </section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-      {[["RESULT_SYNC", resultCollector.status], ["Resultados sincronizados", resultCollector.resultsPersisted], ["Liquidações realizadas", resultCollector.tipsSettled], ["Tips WON", resultCollector.won], ["Tips LOST/VOID", `${resultCollector.lost}/${resultCollector.voids}`], ["Taxa liquidação", `${resultCollector.settlementRate.toFixed(1)}%`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    <section className="card mt-6 p-5">
+      <div className="grid gap-5 md:grid-cols-3">
+        <div><BrainCircuit className="text-neon"/><p className="mt-3 text-sm font-black uppercase tracking-wider">Score</p><p className="mt-1 text-xs text-zinc-500">Classifica 90+ ELITE_GREEN, 80-89 STRONG_GREEN, 70-79 GREEN, 60-69 WATCHLIST e abaixo disso AVOID.</p></div>
+        <div><Activity className="text-gold"/><p className="mt-3 text-sm font-black uppercase tracking-wider">Dados reais</p><p className="mt-1 text-xs text-zinc-500">Sem provider mock, sem recomendacao sintetica e sem liberar mercado com engine essencial insuficiente.</p></div>
+        <div><ShieldCheck className="text-cyan-200"/><p className="mt-3 text-sm font-black uppercase tracking-wider">Odds do Dia</p><p className="mt-1 text-xs text-zinc-500">Somente greenScore &gt;= 80, confidence &gt;= 80 e risk LOW, com Value aprovado, ML treinado e Risk Shield READY.</p></div>
+      </div>
     </section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      {[["Smart Confidence", confidence.status], ["SampleSize", `${confidence.sourceRows}/${confidence.minimumSample}`], ["Top Market", confidence.topMarkets[0]?.market ?? "INSUFFICIENT_REAL_DATA"], ["Top Bookmaker", confidence.topBookmakers[0]?.bookmaker ?? "INSUFFICIENT_REAL_DATA"], ["Top Odd Range", confidence.topOddRanges[0]?.oddRange ?? "INSUFFICIENT_REAL_DATA"]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
+    {context.plan?.code === "PRO" && <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] p-4 text-xs text-amber-200">Plano PRO: Green AI Report basico. Relatorio completo, Command Center e Performance Center sao PREMIUM.</div>}
+    <section className="card mt-6 overflow-hidden p-5 md:p-6">
+      <div className="mb-4"><p className="text-sm font-black uppercase tracking-wider">Radar auditavel</p><p className="mt-1 text-[11px] text-zinc-600">{green.audit.analyzed} odds reais avaliadas · {green.audit.oddsOfDay} Odds do Dia</p></div>
+      <GreenScoreTable items={context.plan?.code === "PREMIUM" ? green.radar : limitItemsByPlan(green.radar, context.plan?.code)}/>
     </section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-      {[["ML status", ml.status], ["TotalSamples", `${ml.totalSamples}/${ml.minimumSamples}`], ["ModelVersion", ml.modelVersion ?? "INSUFFICIENT_REAL_DATA"], ["Accuracy", ml.accuracy == null ? "INSUFFICIENT_REAL_DATA" : `${ml.accuracy.toFixed(2)}%`], ["ROI backtest", ml.roiBacktest == null ? "INSUFFICIENT_REAL_DATA" : `${ml.roiBacktest.toFixed(2)}%`], ["Predictions", ml.predictionsGenerated.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
-    </section>
-    <section className="card mb-6 p-5">
-      <p className="text-sm font-black uppercase tracking-wider">Auto Discovery em linguagem simples</p>
-      <p className="mt-1 text-[10px] text-zinc-600">{discovery.status} · dados reais liquidados WON/LOST/VOID</p>
-      <div className="mt-5 grid gap-4 md:grid-cols-3"><div><p className="label mb-3">Melhores mercados</p>{discovery.positivePatterns.slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.patternType}-${item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}`}><b>{item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}</b><span className="float-right text-neon">{item.status}</span></p>)}</div><div><p className="label mb-3">Mercados bloqueados</p>{discovery.negativePatterns.slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.patternType}-${item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}`}><b>{item.market ?? item.competition ?? item.bookmaker ?? item.oddRange}</b><span className="float-right text-red-400">{item.roi.toFixed(2)}%</span><span className="block text-[10px] text-zinc-600">ROI real nao positivo</span></p>)}</div><div><p className="label mb-3">Oportunidades em observacao</p>{discovery.recommendations.slice(0, 4).map((item) => <p className="mb-2 text-xs" key={item.title}><b>{item.title}</b><span className="block text-[10px] text-zinc-600">{item.description}</span></p>)}</div></div>
-    </section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      {[["Bankroll", bankroll.status], ["Banca atual", bankroll.currentBankroll == null ? "BANKROLL_NOT_CONFIGURED" : `${bankroll.currency} ${bankroll.currentBankroll.toFixed(2)}`], ["Risco diario", `${bankroll.dailyRiskUsedPercent.toFixed(2)}%`], ["Exposicao aberta", `${bankroll.openExposurePercent.toFixed(2)}%`], ["Stake bloqueada", bankroll.reason ?? `${bankroll.blockedRecommendations} bloqueios`]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
-    </section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      {[["Risk Shield", riskShield.status], ["Riscos", riskShield.risksDetected.toString()], ["Bloqueadas", riskShield.tipsBlocked.toString()], ["Reduzidas", riskShield.stakesReduced.toString()], ["Correlacao", riskShield.correlationAlerts.toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
-    </section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      {[["Attribution", attribution.status], ["SampleSize", `${attribution.totalTipsAnalyzed}/${attribution.minimumSample}`], ["Segmentos", attribution.segmentsAnalyzed.toString()], ["Insights", attribution.insightsGenerated.toString()], ["Alertas EV/DD", (attribution.calibrationAlerts.length + attribution.drawdownAlerts.length).toString()]].map(([label, value]) => <div className="card p-4" key={label}><p className="label">{label}</p><strong className="mt-3 block text-lg text-white">{value}</strong></div>)}
-    </section>
-    <section className="card mb-6 p-5">
-      <p className="text-sm font-black uppercase tracking-wider">Performance Attribution em linguagem simples</p>
-      <p className="mt-1 text-[10px] text-zinc-600">{attribution.status} - lucro/prejuizo explicado apenas por TipResult WON/LOST/VOID</p>
-      <div className="mt-5 grid gap-4 md:grid-cols-3"><div><p className="label mb-3">Melhores fontes</p>{attribution.topPositiveSegments.slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.segmentType}-${item.segmentKey}`}><b>{item.segmentKey}</b><span className="float-right text-neon">{item.roi.toFixed(2)}%</span><span className="block text-[10px] text-zinc-600">{item.segmentType} - profit {item.profit.toFixed(2)}u</span></p>)}</div><div><p className="label mb-3">Fontes de perda/drawdown</p>{[...attribution.negativeSegments, ...attribution.drawdownAlerts].slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.segmentType}-${item.segmentKey}`}><b>{item.segmentKey}</b><span className="float-right text-red-400">{item.status}</span><span className="block text-[10px] text-zinc-600">ROI {item.roi.toFixed(2)}% - DD {item.drawdown.toFixed(2)}u</span></p>)}</div><div><p className="label mb-3">Insights operacionais</p>{attribution.insights.slice(0, 4).map((item) => <p className="mb-2 text-xs" key={item.title}><b>{item.title}</b><span className="block text-[10px] text-zinc-600">{item.description}</span></p>)}</div></div>
-    </section>
-    <section className="card mb-6 p-5">
-      <p className="text-sm font-black uppercase tracking-wider">Adaptive Strategy em linguagem simples</p>
-      <p className="mt-1 text-[10px] text-zinc-600">{adaptive.status} - ajustes derivados apenas de performance real liquidada</p>
-      <div className="mt-5 grid gap-4 md:grid-cols-3"><div><p className="label mb-3">Ajustes principais</p>{adaptive.topAdjustments.slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.segmentType}-${item.segmentKey}-${item.action}`}><b>{item.segmentKey}</b><span className="float-right text-neon">{item.action}</span><span className="block text-[10px] text-zinc-600">ROI {item.roi.toFixed(2)}% - n={item.sampleSize}</span></p>)}</div><div><p className="label mb-3">Bloqueios</p>{adaptive.topAdjustments.filter((item) => item.action === "BLOCK_SEGMENT").slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.segmentType}-${item.segmentKey}`}><b>{item.segmentKey}</b><span className="float-right text-red-400">{item.reason}</span></p>)}</div><div><p className="label mb-3">Seguranca</p><p className="text-xs text-zinc-500">Estrategias nunca removem Risk Shield, nunca permitem all-in e nunca sobrescrevem limites de banca.</p></div></div>
-    </section>
-    <section className="card mb-6 p-5">
-      <p className="text-sm font-black uppercase tracking-wider">Operations Intelligence & Data Quality</p>
-      <p className="mt-1 text-[10px] text-zinc-600">Score {dataQuality.score}/100 - {dataQuality.classification} - auditoria sem correcao automatica</p>
-      <div className="mt-5 grid gap-4 md:grid-cols-3"><div><p className="label mb-3">Alertas criticos</p>{dataQuality.findings.filter((item) => item.severity === "CRITICAL").slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.type}-${item.entityId ?? item.message}`}><b>{item.type}</b><span className="block text-[10px] text-zinc-600">{item.message}</span></p>)}</div><div><p className="label mb-3">Warnings</p>{dataQuality.findings.filter((item) => item.severity === "WARNING").slice(0, 4).map((item) => <p className="mb-2 text-xs" key={`${item.type}-${item.entityId ?? item.message}`}><b>{item.type}</b><span className="block text-[10px] text-zinc-600">{item.message}</span></p>)}</div><div><p className="label mb-3">Resumo</p><p className="text-xs text-zinc-500">{dataQuality.alertsFound} alertas, {dataQuality.criticalCount} criticos e {dataQuality.warningCount} warnings. Nenhum dado foi corrigido automaticamente.</p></div></div>
-    </section>
-    <section className="card mb-6 overflow-hidden"><div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">Smart Confidence por mercado</p><p className="mt-1 text-[10px] text-zinc-600">confidenceScore, ROI, winRate, drawdown e sampleSize calculados somente com TipResult real</p></div><div className="overflow-x-auto"><table className="w-full min-w-[780px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Mercado</th><th>SampleSize</th><th>Win Rate</th><th>ROI</th><th>Drawdown</th><th>Confidence</th><th>Status</th></tr></thead><tbody>{confidence.topMarkets.length ? confidence.topMarkets.map((item) => <tr key={item.id} className="border-b border-line/60"><td className="px-5 py-4 font-black">{item.market}<span className="block text-[10px] text-zinc-600">{item.provider} · {item.bookmaker}</span></td><td>{item.sampleSize}</td><td>{(item.winRate * 100).toFixed(1)}%</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.drawdown.toFixed(2)}u</td><td>{item.confidenceScore.toFixed(0)}/100</td><td>{item.status}</td></tr>) : <tr><td colSpan={7} className="px-5 py-10 text-center text-zinc-600">INSUFFICIENT_REAL_DATA</td></tr>}</tbody></table></div></section>
-    <div className="grid gap-4 md:grid-cols-3">{report.backtests.map((item) => <div className="card p-5" key={item.period}><Activity className="text-neon"/><p className="mt-4 text-xs font-black">{item.period}</p><div className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><p className="label">ROI</p><strong className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</strong></div><div><p className="label">Yield</p><strong>{item.yield.toFixed(2)}%</strong></div><div><p className="label">Win Rate</p><strong>{item.winRate.toFixed(1)}%</strong></div><div><p className="label">Lucro</p><strong>{item.profit.toFixed(2)}u</strong></div><div><p className="label">Drawdown</p><strong className="text-red-400">{item.drawdown.toFixed(2)}u</strong></div><div><p className="label">Entradas</p><strong>{item.entries}</strong></div></div></div>)}</div>
-    <div className="mt-6 grid gap-6 xl:grid-cols-2"><section className="card p-5"><div className="flex items-center gap-3"><ArrowUpRight className="text-neon"/><div><p className="label">Melhores mercados</p><h2 className="text-lg font-black">Ranking por ROI</h2></div></div><div className="mt-5 space-y-3">{report.bestMarkets.length ? report.bestMarkets.map((item,index) => <div key={item.period} className="grid grid-cols-[28px_1fr_auto] items-center rounded-xl border border-line p-3 text-xs"><span className="text-zinc-600">{index+1}</span><b>{item.period}</b><span className="text-neon">{item.roi.toFixed(2)}%</span></div>) : <p className="text-xs text-zinc-600">Dataset ainda sem mercados liquidados.</p>}</div></section><section className="card p-5"><div className="flex items-center gap-3"><ArrowDownRight className="text-red-400"/><div><p className="label">Piores mercados</p><h2 className="text-lg font-black">Pontos de atenção</h2></div></div><div className="mt-5 space-y-3">{report.worstMarkets.length ? report.worstMarkets.map((item,index) => <div key={item.period} className="grid grid-cols-[28px_1fr_auto] items-center rounded-xl border border-line p-3 text-xs"><span className="text-zinc-600">{index+1}</span><b>{item.period}</b><span className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</span></div>) : <p className="text-xs text-zinc-600">Dataset ainda sem mercados liquidados.</p>}</div></section></div>
-    <section className="card mt-6 overflow-hidden"><div className="border-b border-line p-5"><p className="text-sm font-black uppercase tracking-wider">ROI por mercado</p><p className="mt-1 text-[10px] text-zinc-600">Performance histórica observada, sem extrapolação garantida</p></div><div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-xs"><thead><tr className="border-b border-line text-[9px] uppercase text-zinc-600"><th className="px-5 py-3">Mercado</th><th>ROI</th><th>Yield</th><th>Win Rate</th><th>Lucro</th><th>Drawdown</th><th>Entradas</th></tr></thead><tbody>{report.markets.map((item) => <tr key={item.period} className="border-b border-line/60"><td className="px-5 py-4 font-black">{item.period}</td><td className={item.roi >= 0 ? "text-neon" : "text-red-400"}>{item.roi.toFixed(2)}%</td><td>{item.yield.toFixed(2)}%</td><td>{item.winRate.toFixed(1)}%</td><td>{item.profit.toFixed(2)}u</td><td>{item.drawdown.toFixed(2)}u</td><td>{item.entries}</td></tr>)}</tbody></table></div></section>
-    <section className="card mt-6 p-5"><div className="flex items-center gap-3"><BrainCircuit className="text-gold"/><div><p className="label">Evolução do modelo</p><h2 className="font-black">Performance mensal</h2></div></div><div className="mt-5 grid gap-3 md:grid-cols-3">{report.evolution.length ? report.evolution.map((item) => <div key={item.month} className="rounded-xl border border-line p-4 text-xs"><b>{item.month}</b><p className="mt-3 text-zinc-500">ROI <span className="float-right text-white">{item.roi.toFixed(2)}%</span></p><p className="mt-2 text-zinc-500">Win Rate <span className="float-right text-white">{item.winRate.toFixed(1)}%</span></p><p className="mt-2 text-zinc-500">Entradas <span className="float-right text-white">{item.entries}</span></p></div>) : <p className="text-xs text-zinc-600">A evolução aparecerá após as primeiras liquidações alimentarem o dataset.</p>}</div></section>
-    <div className="mt-6 rounded-xl border border-line bg-white/[.02] p-4 text-[11px] leading-relaxed text-zinc-500">Relatório estatístico e probabilístico. Desempenho passado não garante resultados futuros, lucro ou green. Aposte com responsabilidade.</div>
     <div className="mt-6"><CreatorSignature compact/></div>
   </>;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Radio, Search, ShieldCheck } from "lucide-react";
+import { Bell, Radio, Search, ShieldCheck, Sparkles } from "lucide-react";
 
 const navigation = [
   { href: "/live-monitor", label: "Ao Vivo", icon: Radio },
@@ -15,7 +15,8 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-[#07100c]/90 backdrop-blur-2xl">
+    <header className="sticky top-0 z-20 border-b border-cyan-400/15 bg-[#04111f]/92 backdrop-blur-2xl">
+      <div className="flex min-h-7 items-center justify-center gap-2 border-b border-white/[.04] bg-cyan-400/[.035] px-3 text-[8px] font-black uppercase tracking-[.2em] text-cyan-200"><Sparkles size={10} className="text-[#d6b86a]" /> LEONIDAS TECH <span className="text-[#d6b86a]">· Conectando o Futuro</span><span className="hidden text-zinc-600 sm:inline">· 5G · IA · Conectividade</span></div>
       <div className="flex h-16 items-center gap-4 px-4 md:px-7">
         <Link href="/dashboard" className="flex min-w-0 items-center gap-3 lg:hidden">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-neon/20 bg-neon/10 text-neon"><ShieldCheck size={19}/></div>
