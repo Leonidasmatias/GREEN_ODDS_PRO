@@ -8,20 +8,20 @@ datasource db {
 }
 
 model Match {
-  id          String   @id @default(cuid())
-  providerId  String?  @unique
-  competition String
-  homeTeam    String
-  awayTeam    String
-  startsAt    DateTime
-  status      String   @default("PRE_GAME")
-  homeScore   Int?
-  awayScore   Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tips        Tip[]
+  id            String         @id @default(cuid())
+  providerId    String?        @unique
+  competition   String
+  homeTeam      String
+  awayTeam      String
+  startsAt      DateTime
+  status        String         @default("PRE_GAME")
+  homeScore     Int?
+  awayScore     Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  tips          Tip[]
   oddsSnapshots OddsSnapshot[]
-  results     MatchResult[]
+  results       MatchResult[]
 
   @@index([startsAt, status])
   @@map("matches")
@@ -71,30 +71,30 @@ model ValueAnalysis {
 }
 
 model GreenScoreAnalysis {
-  id                   String   @id @default(cuid())
-  matchId              String
-  oddsSnapshotId       String?
-  provider             String
-  bookmaker            String
-  competition          String
-  gameLabel            String
-  market               String
-  selection            String
-  odd                  Float
-  greenScore           Int
-  confidence           Int
-  risk                 String
-  classification       String
-  qualifiesOddsOfDay   Boolean  @default(false)
-  valueScore           Float    @default(0)
-  valueStatus          String
-  mlStatus             String
-  mlConfidence         Float    @default(0)
-  discoveryStatus      String?
-  riskShieldStatus     String
-  rejectionReasons     String?
-  analyzedAt           DateTime @default(now())
-  createdAt            DateTime @default(now())
+  id                 String   @id @default(cuid())
+  matchId            String
+  oddsSnapshotId     String?
+  provider           String
+  bookmaker          String
+  competition        String
+  gameLabel          String
+  market             String
+  selection          String
+  odd                Float
+  greenScore         Int
+  confidence         Int
+  risk               String
+  classification     String
+  qualifiesOddsOfDay Boolean  @default(false)
+  valueScore         Float    @default(0)
+  valueStatus        String
+  mlStatus           String
+  mlConfidence       Float    @default(0)
+  discoveryStatus    String?
+  riskShieldStatus   String
+  rejectionReasons   String?
+  analyzedAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
 
   @@index([greenScore, confidence, risk])
   @@index([classification, analyzedAt])
@@ -103,33 +103,33 @@ model GreenScoreAnalysis {
 }
 
 model Tip {
-  id                 String   @id @default(cuid())
-  matchId            String
-  gameLabel          String
-  market             String
-  selection          String
-  odd                Float
-  provider           String   @default("unknown")
-  bookmaker          String   @default("unknown")
-  impliedProbability Float
+  id                   String      @id @default(cuid())
+  matchId              String
+  gameLabel            String
+  market               String
+  selection            String
+  odd                  Float
+  provider             String      @default("unknown")
+  bookmaker            String      @default("unknown")
+  impliedProbability   Float
   estimatedProbability Float
-  edge               Float
-  expectedValue      Float
-  confidenceScore    Float
-  score              Float    @default(0)
-  classification     String
-  risk               String
-  status             String   @default("PENDING")
-  stakeSuggested     Float    @default(1)
-  stake              Float    @default(1)
-  profit             Float?
-  profitLoss         Float?
-  roi                Float?
-  rejectionReason    String?
-  createdAt          DateTime @default(now())
-  settledAt          DateTime?
-  match              Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  results            TipResult[]
+  edge                 Float
+  expectedValue        Float
+  confidenceScore      Float
+  score                Float       @default(0)
+  classification       String
+  risk                 String
+  status               String      @default("PENDING")
+  stakeSuggested       Float       @default(1)
+  stake                Float       @default(1)
+  profit               Float?
+  profitLoss           Float?
+  roi                  Float?
+  rejectionReason      String?
+  createdAt            DateTime    @default(now())
+  settledAt            DateTime?
+  match                Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  results              TipResult[]
 
   @@index([status, createdAt])
   @@index([expectedValue, confidenceScore])
@@ -161,15 +161,15 @@ model TipResult {
 }
 
 model SettlementRun {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   provider      String
-  status        String   @default("RUNNING")
-  tipsProcessed Int      @default(0)
-  tipsSettled   Int      @default(0)
+  status        String    @default("RUNNING")
+  tipsProcessed Int       @default(0)
+  tipsSettled   Int       @default(0)
   errors        String?
-  startedAt     DateTime @default(now())
+  startedAt     DateTime  @default(now())
   finishedAt    DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   @@index([provider, startedAt])
   @@index([status, startedAt])
@@ -177,7 +177,7 @@ model SettlementRun {
 }
 
 model MatchResult {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   matchId     String
   providerId  String
   provider    String
@@ -186,14 +186,14 @@ model MatchResult {
   awayTeam    String
   homeScore   Int?
   awayScore   Int?
-  status      String   @default("PENDING")
-  source      String   @default("PROVIDER")
+  status      String    @default("PENDING")
+  source      String    @default("PROVIDER")
   rawPayload  String?
-  collectedAt DateTime @default(now())
+  collectedAt DateTime  @default(now())
   finishedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  match       Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
   @@index([matchId, status])
@@ -202,15 +202,15 @@ model MatchResult {
 }
 
 model ResultSyncRun {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   provider         String
-  startedAt        DateTime @default(now())
+  startedAt        DateTime  @default(now())
   finishedAt       DateTime?
-  status           String   @default("RUNNING")
-  resultsReceived  Int      @default(0)
-  resultsPersisted Int      @default(0)
-  matchesUpdated   Int      @default(0)
-  pendingResults   Int      @default(0)
+  status           String    @default("RUNNING")
+  resultsReceived  Int       @default(0)
+  resultsPersisted Int       @default(0)
+  matchesUpdated   Int       @default(0)
+  pendingResults   Int       @default(0)
   remainingLimit   Int?
   errors           String?
   notes            String?
@@ -436,17 +436,17 @@ model OddRangeConfidence {
 }
 
 model MlTrainingRun {
-  id                  String    @id @default(cuid())
-  startedAt           DateTime  @default(now())
+  id                  String          @id @default(cuid())
+  startedAt           DateTime        @default(now())
   finishedAt          DateTime?
-  status              String    @default("RUNNING")
-  totalSamples        Int       @default(0)
-  wonSamples          Int       @default(0)
-  lostSamples         Int       @default(0)
-  voidSamples         Int       @default(0)
-  marketsCovered      Int       @default(0)
-  competitionsCovered Int       @default(0)
-  bookmakersCovered   Int       @default(0)
+  status              String          @default("RUNNING")
+  totalSamples        Int             @default(0)
+  wonSamples          Int             @default(0)
+  lostSamples         Int             @default(0)
+  voidSamples         Int             @default(0)
+  marketsCovered      Int             @default(0)
+  competitionsCovered Int             @default(0)
+  bookmakersCovered   Int             @default(0)
   modelVersion        String
   notes               String?
   metrics             MlModelMetric[]
@@ -541,7 +541,7 @@ model DiscoveryPattern {
 }
 
 model DiscoveryRecommendation {
-  id                 String           @id @default(cuid())
+  id                 String            @id @default(cuid())
   runId              String
   patternId          String?
   title              String
@@ -550,8 +550,8 @@ model DiscoveryRecommendation {
   priority           String
   status             String
   reason             String
-  createdAt          DateTime         @default(now())
-  run                DiscoveryRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  createdAt          DateTime          @default(now())
+  run                DiscoveryRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
   pattern            DiscoveryPattern? @relation(fields: [patternId], references: [id], onDelete: SetNull)
 
   @@index([runId])
@@ -581,14 +581,14 @@ model BankrollProfile {
 }
 
 model BankrollAllocation {
-  id          String   @id @default(cuid())
-  profileId   String
-  category    String
-  allocated   Float    @default(0)
-  used        Float    @default(0)
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  profileId String
+  category  String
+  allocated Float    @default(0)
+  used      Float    @default(0)
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([profileId, category])
   @@map("bankroll_allocations")
@@ -610,23 +610,23 @@ model ExposureLimit {
 }
 
 model StakeRecommendation {
-  id                 String   @id @default(cuid())
-  tipId              String?
-  matchId            String
-  market             String
-  selection          String
-  odd                Float
-  confidenceScore    Float
-  modelProbability   Float?
-  edge               Float?
-  expectedValue      Float?
-  risk               String
-  recommendedStake   Float    @default(0)
-  stakePercent       Float    @default(0)
-  strategy           String
-  status             String
-  reason             String
-  createdAt          DateTime @default(now())
+  id               String   @id @default(cuid())
+  tipId            String?
+  matchId          String
+  market           String
+  selection        String
+  odd              Float
+  confidenceScore  Float
+  modelProbability Float?
+  edge             Float?
+  expectedValue    Float?
+  risk             String
+  recommendedStake Float    @default(0)
+  stakePercent     Float    @default(0)
+  strategy         String
+  status           String
+  reason           String
+  createdAt        DateTime @default(now())
 
   @@index([tipId])
   @@index([matchId, market, selection])
@@ -810,7 +810,7 @@ model AdaptiveStrategyRun {
 }
 
 model AdaptiveStrategyRule {
-  id                       String    @id @default(cuid())
+  id                       String   @id @default(cuid())
   segmentType              String
   segmentKey               String
   market                   String?
@@ -819,19 +819,19 @@ model AdaptiveStrategyRule {
   provider                 String?
   oddRange                 String?
   action                   String
-  weightMultiplier         Float     @default(1)
-  confidenceThresholdDelta Float     @default(0)
-  stakeMultiplier          Float     @default(1)
-  riskSensitivity          String    @default("NORMAL")
-  status                   String    @default("ACTIVE")
+  weightMultiplier         Float    @default(1)
+  confidenceThresholdDelta Float    @default(0)
+  stakeMultiplier          Float    @default(1)
+  riskSensitivity          String   @default("NORMAL")
+  status                   String   @default("ACTIVE")
   reason                   String
-  sampleSize               Int       @default(0)
-  roi                      Float     @default(0)
-  drawdown                 Float     @default(0)
-  variance                 Float     @default(0)
+  sampleSize               Int      @default(0)
+  roi                      Float    @default(0)
+  drawdown                 Float    @default(0)
+  variance                 Float    @default(0)
   sourceRunId              String?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   @@unique([segmentType, segmentKey])
   @@index([status, action])
@@ -867,14 +867,14 @@ model AdaptiveStrategyAdjustment {
 }
 
 model AdaptiveStrategyEvent {
-  id        String              @id @default(cuid())
+  id        String               @id @default(cuid())
   runId     String?
   eventType String
   severity  String
   action    String
   reason    String
   metadata  String?
-  createdAt DateTime            @default(now())
+  createdAt DateTime             @default(now())
   run       AdaptiveStrategyRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
 
   @@index([runId])
@@ -884,16 +884,16 @@ model AdaptiveStrategyEvent {
 }
 
 model SyncRun {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   provider          String
   mode              String
   status            String
-  eventsReceived    Int      @default(0)
-  snapshotsCreated  Int      @default(0)
-  tipsCreated       Int      @default(0)
+  eventsReceived    Int       @default(0)
+  snapshotsCreated  Int       @default(0)
+  tipsCreated       Int       @default(0)
   requestsRemaining Int?
   warning           String?
-  startedAt         DateTime @default(now())
+  startedAt         DateTime  @default(now())
   completedAt       DateTime?
 
   @@index([startedAt])
@@ -933,26 +933,26 @@ model ModelWeights {
 }
 
 model TrainingDataset {
-  id        String   @id @default(cuid())
-  tipId     String   @unique
-  matchId   String
-  market    String
-  odd       Float
-  impliedProbability Float @default(0)
-  estimatedProbability Float @default(0)
-  score     Float
-  ev        Float
-  edge      Float @default(0)
-  risk      String
-  result    String
-  profit    Float
-  generatedAt DateTime @default(now())
-  settledAt DateTime @default(now())
-  oddsMovement Float @default(0)
-  powerRating Float @default(0)
-  recentForm Float @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  tipId                String   @unique
+  matchId              String
+  market               String
+  odd                  Float
+  impliedProbability   Float    @default(0)
+  estimatedProbability Float    @default(0)
+  score                Float
+  ev                   Float
+  edge                 Float    @default(0)
+  risk                 String
+  result               String
+  profit               Float
+  generatedAt          DateTime @default(now())
+  settledAt            DateTime @default(now())
+  oddsMovement         Float    @default(0)
+  powerRating          Float    @default(0)
+  recentForm           Float    @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([market, result])
   @@index([createdAt])
@@ -995,20 +995,20 @@ model ExecutiveCommandAudit {
 }
 
 model User {
-  id             String             @id @default(cuid())
-  name           String?
-  email          String             @unique
-  passwordHash   String?
-  emailVerified  DateTime?
-  image          String?
-  role           String             @default("USER")
-  status         String             @default("ACTIVE")
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  accounts       Account[]
-  sessions       Session[]
-  subscriptions  UserSubscription[]
-  accessLogs     AccessLog[]
+  id            String             @id @default(cuid())
+  name          String?
+  email         String             @unique
+  passwordHash  String?
+  emailVerified DateTime?
+  image         String?
+  role          String             @default("USER")
+  status        String             @default("ACTIVE")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  subscriptions UserSubscription[]
+  accessLogs    AccessLog[]
 
   @@index([status, createdAt])
   @@map("users")
@@ -1079,16 +1079,16 @@ model SubscriptionPlan {
 }
 
 model UserSubscription {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
   planId    String
-  status    String   @default("ACTIVE")
-  startsAt  DateTime @default(now())
+  status    String           @default("ACTIVE")
+  startsAt  DateTime         @default(now())
   endsAt    DateTime?
-  source    String   @default("INTERNAL")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source    String           @default("INTERNAL")
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan      SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@index([userId, status])
@@ -1132,10 +1132,10 @@ model ModelVersion {
 }
 
 model JobRun {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  status      String   @default("PENDING")
-  scheduledAt DateTime @default(now())
+  status      String    @default("PENDING")
+  scheduledAt DateTime  @default(now())
   startedAt   DateTime?
   completedAt DateTime?
   durationMs  Int?
@@ -1186,19 +1186,19 @@ model DataQualityEvent {
 }
 
 model DataQualityAlert {
-  id        String   @id @default(cuid())
-  runId     String?
-  type      String
-  severity  String
-  status    String   @default("OPEN")
-  entity    String?
-  message   String
-  entityId  String?
-  scoreImpact Int    @default(0)
-  metadata  String?
-  createdAt DateTime @default(now())
-  resolvedAt DateTime?
-  run       DataQualityRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+  id          String          @id @default(cuid())
+  runId       String?
+  type        String
+  severity    String
+  status      String          @default("OPEN")
+  entity      String?
+  message     String
+  entityId    String?
+  scoreImpact Int             @default(0)
+  metadata    String?
+  createdAt   DateTime        @default(now())
+  resolvedAt  DateTime?
+  run         DataQualityRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
 
   @@index([runId])
   @@index([status, severity])
@@ -1207,15 +1207,15 @@ model DataQualityAlert {
 }
 
 model ProviderCall {
-  id               String   @id @default(cuid())
-  provider         String
-  operation        String
-  status           String
-  latencyMs        Int
-  callsMade        Int      @default(1)
-  remainingLimit   Int?
-  error            String?
-  createdAt        DateTime @default(now())
+  id             String   @id @default(cuid())
+  provider       String
+  operation      String
+  status         String
+  latencyMs      Int
+  callsMade      Int      @default(1)
+  remainingLimit Int?
+  error          String?
+  createdAt      DateTime @default(now())
 
   @@index([provider, createdAt])
   @@index([status, createdAt])
@@ -1258,4 +1258,280 @@ model SchedulerLease {
 
   @@index([expiresAt])
   @@map("scheduler_leases")
+}
+
+// =====================================================================
+// eSoccer Domain Foundation — Fase 1 (ESOCCER INTELLIGENCE V1)
+// Fundação de dados para Bet365 eSoccer. Não integra BetsAPI nesta fase.
+// Regra central: o jogador (nickname) é a identidade estatística
+// permanente; a equipe virtual é apenas o contexto da partida.
+// =====================================================================
+
+enum ESoccerPlayerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ESoccerLeagueStatus {
+  ACTIVE
+  INACTIVE
+  UNKNOWN
+}
+
+enum ESoccerMatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  CANCELLED
+  POSTPONED
+  UNKNOWN
+}
+
+enum ESoccerProvider {
+  BETSAPI
+  FIXTURE
+  CSV
+  MANUAL
+}
+
+enum ESoccerRatingSystem {
+  ELO
+  GLICKO
+  CUSTOM
+}
+
+enum ESoccerRecommendationStatus {
+  APPROVED
+  OBSERVATION
+  NO_BET
+}
+
+enum ESoccerMarket {
+  MATCH_WINNER
+  DRAW_NO_BET
+  BOTH_TEAMS_TO_SCORE
+  OVER_2_5
+  OVER_3_5
+  OVER_4_5
+  OVER_5_5
+}
+
+model ESoccerPlayer {
+  id                 String                      @id @default(cuid())
+  nickname           String
+  normalizedNickname String                      @unique
+  displayName        String?
+  status             ESoccerPlayerStatus         @default(ACTIVE)
+  firstSeenAt        DateTime                    @default(now())
+  lastSeenAt         DateTime                    @default(now())
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  aliases            ESoccerPlayerAlias[]
+  ratings            ESoccerPlayerRating[]
+  rollingStats       ESoccerPlayerRollingStats[]
+  homeMatches        ESoccerMatch[]              @relation("ESoccerMatchHomePlayer")
+  awayMatches        ESoccerMatch[]              @relation("ESoccerMatchAwayPlayer")
+  headToHeadAsA      ESoccerHeadToHeadStats[]    @relation("ESoccerH2HPlayerA")
+  headToHeadAsB      ESoccerHeadToHeadStats[]    @relation("ESoccerH2HPlayerB")
+
+  @@index([status, lastSeenAt])
+  @@map("esoccer_players")
+}
+
+model ESoccerPlayerAlias {
+  id              String        @id @default(cuid())
+  playerId        String
+  alias           String
+  normalizedAlias String        @unique
+  source          String?
+  createdAt       DateTime      @default(now())
+  player          ESoccerPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("esoccer_player_aliases")
+}
+
+model ESoccerLeague {
+  id                  String              @id @default(cuid())
+  externalId          String?
+  name                String
+  normalizedName      String              @unique
+  provider            ESoccerProvider     @default(FIXTURE)
+  gameDurationMinutes Int?
+  status              ESoccerLeagueStatus @default(UNKNOWN)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  matches             ESoccerMatch[]
+
+  @@index([externalId])
+  @@index([provider, status])
+  @@map("esoccer_leagues")
+}
+
+model ESoccerVirtualTeam {
+  id             String         @id @default(cuid())
+  name           String
+  normalizedName String         @unique
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  homeMatches    ESoccerMatch[] @relation("ESoccerMatchHomeVirtualTeam")
+  awayMatches    ESoccerMatch[] @relation("ESoccerMatchAwayVirtualTeam")
+
+  @@map("esoccer_virtual_teams")
+}
+
+model ESoccerMatch {
+  id                String             @id @default(cuid())
+  externalId        String?
+  provider          ESoccerProvider    @default(FIXTURE)
+  leagueId          String?
+  scheduledAt       DateTime
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  status            ESoccerMatchStatus @default(SCHEDULED)
+  homePlayerId      String
+  awayPlayerId      String
+  homeVirtualTeamId String?
+  awayVirtualTeamId String?
+  homeScore         Int?
+  awayScore         Int?
+  rawHomeName       String
+  rawAwayName       String
+  sourcePayload     String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  league          ESoccerLeague?          @relation(fields: [leagueId], references: [id], onDelete: SetNull)
+  homePlayer      ESoccerPlayer           @relation("ESoccerMatchHomePlayer", fields: [homePlayerId], references: [id], onDelete: Restrict)
+  awayPlayer      ESoccerPlayer           @relation("ESoccerMatchAwayPlayer", fields: [awayPlayerId], references: [id], onDelete: Restrict)
+  homeVirtualTeam ESoccerVirtualTeam?     @relation("ESoccerMatchHomeVirtualTeam", fields: [homeVirtualTeamId], references: [id], onDelete: SetNull)
+  awayVirtualTeam ESoccerVirtualTeam?     @relation("ESoccerMatchAwayVirtualTeam", fields: [awayVirtualTeamId], references: [id], onDelete: SetNull)
+  predictions     ESoccerPrediction[]
+  recommendations ESoccerRecommendation[]
+
+  // Regra de domínio (não expressa como CHECK de banco nesta fase):
+  // homePlayerId != awayPlayerId é validado em src/services/esoccerDomainService.ts.
+  @@unique([provider, externalId])
+  @@index([externalId])
+  @@index([provider])
+  @@index([leagueId])
+  @@index([scheduledAt])
+  @@index([status])
+  @@index([homePlayerId])
+  @@index([awayPlayerId])
+  @@map("esoccer_matches")
+}
+
+model ESoccerPlayerRating {
+  id           String              @id @default(cuid())
+  playerId     String
+  rating       Float
+  ratingSystem ESoccerRatingSystem @default(CUSTOM)
+  matchesCount Int                 @default(0)
+  recordedAt   DateTime            @default(now())
+  createdAt    DateTime            @default(now())
+  player       ESoccerPlayer       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([recordedAt])
+  @@map("esoccer_player_ratings")
+}
+
+model ESoccerPlayerRollingStats {
+  id                  String        @id @default(cuid())
+  playerId            String
+  windowSize          Int
+  matchesCount        Int           @default(0)
+  wins                Int           @default(0)
+  draws               Int           @default(0)
+  losses              Int           @default(0)
+  goalsFor            Int           @default(0)
+  goalsAgainst        Int           @default(0)
+  avgGoalsFor         Float         @default(0)
+  avgGoalsAgainst     Float         @default(0)
+  bothTeamsScoredRate Float         @default(0)
+  over25Rate          Float         @default(0)
+  over35Rate          Float         @default(0)
+  over45Rate          Float         @default(0)
+  calculatedAt        DateTime      @default(now())
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  player              ESoccerPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, windowSize])
+  @@map("esoccer_player_rolling_stats")
+}
+
+model ESoccerHeadToHeadStats {
+  id                  String        @id @default(cuid())
+  playerAId           String
+  playerBId           String
+  matchesCount        Int           @default(0)
+  playerAWins         Int           @default(0)
+  draws               Int           @default(0)
+  playerBWins         Int           @default(0)
+  playerAGoals        Int           @default(0)
+  playerBGoals        Int           @default(0)
+  over25Rate          Float         @default(0)
+  over35Rate          Float         @default(0)
+  bothTeamsScoredRate Float         @default(0)
+  calculatedAt        DateTime      @default(now())
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  playerA             ESoccerPlayer @relation("ESoccerH2HPlayerA", fields: [playerAId], references: [id], onDelete: Cascade)
+  playerB             ESoccerPlayer @relation("ESoccerH2HPlayerB", fields: [playerBId], references: [id], onDelete: Cascade)
+
+  // Regra de domínio: o par deve ser canônico (playerAId < playerBId).
+  // Não expresso como CHECK de banco nesta fase; ver canonicalizePlayerPair()
+  // em src/lib/esoccer/normalization.ts e validação em esoccerDomainService.ts.
+  @@unique([playerAId, playerBId])
+  @@index([playerAId])
+  @@index([playerBId])
+  @@map("esoccer_head_to_head_stats")
+}
+
+model ESoccerPrediction {
+  id                 String                  @id @default(cuid())
+  matchId            String
+  modelVersion       String
+  homeWinProbability Float
+  drawProbability    Float
+  awayWinProbability Float
+  expectedTotalGoals Float?
+  over25Probability  Float?
+  over35Probability  Float?
+  over45Probability  Float?
+  confidenceScore    Float
+  createdAt          DateTime                @default(now())
+  match              ESoccerMatch            @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  recommendations    ESoccerRecommendation[]
+
+  @@index([matchId])
+  @@index([createdAt])
+  @@map("esoccer_predictions")
+}
+
+model ESoccerRecommendation {
+  id                   String                      @id @default(cuid())
+  matchId              String
+  predictionId         String?
+  market               ESoccerMarket
+  selection            String?
+  status               ESoccerRecommendationStatus
+  confidenceScore      Float
+  estimatedProbability Float?
+  offeredOdd           Float?
+  impliedProbability   Float?
+  edge                 Float?
+  reason               String
+  riskFlags            String?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  match                ESoccerMatch                @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  prediction           ESoccerPrediction?          @relation(fields: [predictionId], references: [id], onDelete: SetNull)
+
+  @@index([matchId])
+  @@index([predictionId])
+  @@index([status, market])
+  @@map("esoccer_recommendations")
 }
