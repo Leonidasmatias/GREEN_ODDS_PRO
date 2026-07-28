@@ -45,7 +45,7 @@ export const PLAN_DEFINITIONS = {
 };
 
 export const PUBLIC_ROUTES = ["/", "/login", "/register", "/pricing", "/terms", "/privacy", "/risk-disclaimer"];
-export const PROTECTED_ROUTES = ["/dashboard", "/radar-green", "/odds-do-dia", "/green-ai-report", "/command-center", "/performance-center", "/intelligence", "/prediction"];
+export const PROTECTED_ROUTES = ["/dashboard", "/radar-green", "/odds-do-dia", "/green-ai-report", "/command-center", "/performance-center", "/intelligence", "/prediction", "/prediction/history"];
 
 export const ROUTE_FEATURE: Record<string, FeatureKey> = {
   "/dashboard": "dashboard",
@@ -56,6 +56,7 @@ export const ROUTE_FEATURE: Record<string, FeatureKey> = {
   "/performance-center": "performanceCenter",
   "/intelligence": "intelligence",
   "/prediction": "predictionCenter",
+  "/prediction/history": "predictionCenter",
 };
 
 export async function ensureSubscriptionPlans() {

@@ -150,6 +150,15 @@ export type PredictionCenterViewModel = {
  * superior é sempre um rollup determinístico dos `status` individuais de
  * `items` (ver `rollupItemsStatus` em `predictionMarketUtils.ts`) —
  * nunca uma decisão nova, apenas o pior caso entre os itens do lote.
+ *
+ * Sprint 8.1: este resultado é produzido exclusivamente por uma
+ * operação de LEITURA (`getPredictionCenterData`) — nunca persiste.
+ * O campo `persistence` que existia aqui na Sprint 8.0 foi removido: uma
+ * operação de leitura não tem mais nenhum efeito de escrita associado
+ * para resumir (geração+persistência explícita agora é um caso de uso
+ * próprio, `generateAndPersistPredictionCenterData`, com seu próprio
+ * contrato de retorno). `page.tsx` nunca leu esse campo, então a
+ * remoção é invisível ao comportamento visual existente.
  */
 export type PredictionCenterDataResult =
   | { status: "success" | "partial"; source: PredictionCenterSourceKind; items: PredictionCenterViewModel[] }

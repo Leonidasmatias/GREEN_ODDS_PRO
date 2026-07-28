@@ -1535,3 +1535,58 @@ model ESoccerRecommendation {
   @@index([status, market])
   @@map("esoccer_recommendations")
 }
+
+// =====================================================================
+// Prediction Center Persistence — Sprint 7.2 (PREDICTION PERSISTENCE &
+// LEARNING FOUNDATION)
+// Persistencia do Prediction Orchestrator (Sprint 4.3+), inteiramente
+// desacoplada do pipeline legado acima (ESoccerPrediction/
+// ESoccerRecommendation pertencem a um motor diferente, com semantica
+// diferente — nunca reaproveitados aqui, decisao da Sprint 6.5).
+// Deliberadamente denormalizado (sem @relation para ESoccerMatch/
+// ESoccerPlayer/ESoccerLeague/ESoccerVirtualTeam) — decisao da Sprint 7.1,
+// reconfirmada nesta sprint.
+// =====================================================================
+
+enum PredictionSource {
+  FIXTURE
+  REAL
+}
+
+model PredictionSnapshotRecord {
+  id           String   @id @default(cuid())
+  snapshotHash String   @unique
+  createdAt    DateTime @default(now())
+
+  matchId         String
+  homePlayerId    String
+  awayPlayerId    String
+  virtualTeamHome String?
+  virtualTeamAway String?
+  league          String?
+  period          String?
+  sequenceKey     String?
+
+  modelVersion      String
+  configurationHash String
+  generatedAt       DateTime
+  source            PredictionSource
+  schemaVersion     String
+
+  // Campos denormalizados para filtros rapidos.
+  // A fonte de verdade continua sendo snapshotPayload.
+  greenScoreCategory String
+  combinedStatus     String
+
+  // PredictionSnapshot completo, serializado via JSON.stringify.
+  // Fonte de verdade do registro persistido.
+  snapshotPayload String
+
+  @@index([matchId])
+  @@index([homePlayerId])
+  @@index([awayPlayerId])
+  @@index([league])
+  @@index([period])
+  @@index([generatedAt])
+  @@map("prediction_snapshot_records")
+}
