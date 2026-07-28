@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "gop_session";
-const PROTECTED_PREFIXES = ["/dashboard", "/radar-green", "/odds-do-dia", "/green-ai-report", "/command-center", "/performance-center", "/intelligence"];
+const PROTECTED_PREFIXES = ["/dashboard", "/radar-green", "/odds-do-dia", "/green-ai-report", "/command-center", "/performance-center", "/intelligence", "/prediction"];
 
 function adminBasicAuth(request: NextRequest) {
   if (process.env.NODE_ENV !== "production") return null;
@@ -33,4 +33,4 @@ export function middleware(request: NextRequest) {
   return NextResponse.redirect(loginUrl);
 }
 
-export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/dashboard/:path*", "/radar-green/:path*", "/odds-do-dia/:path*", "/green-ai-report/:path*", "/command-center/:path*", "/performance-center/:path*", "/intelligence/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/dashboard/:path*", "/radar-green/:path*", "/odds-do-dia/:path*", "/green-ai-report/:path*", "/command-center/:path*", "/performance-center/:path*", "/intelligence/:path*", "/prediction/:path*"] };

@@ -31,6 +31,12 @@ test("plan gates block premium resources", () => {
   assert.equal(canAccessFeature("PRO", "greenAiReport").allowed, true);
 });
 
+test("predictionCenter follows the same PREMIUM-only gate as commandCenter/performanceCenter/intelligence", () => {
+  assert.equal(canAccessFeature("FREE", "predictionCenter").allowed, false);
+  assert.equal(canAccessFeature("PRO", "predictionCenter").allowed, false);
+  assert.equal(canAccessFeature("PREMIUM", "predictionCenter").allowed, true);
+});
+
 test("pick limits match commercial rules", () => {
   assert.equal(pickLimitForPlan("FREE"), 2);
   assert.equal(pickLimitForPlan("PRO"), 20);

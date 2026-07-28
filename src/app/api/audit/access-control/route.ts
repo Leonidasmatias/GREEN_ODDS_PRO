@@ -20,7 +20,7 @@ export async function GET() {
     user: { id: context.user.id, email: context.user.email },
     activePlan: planCode,
     checks,
-    bypass: checks.some((item) => item.feature && !item.allowed && ["commandCenter", "performanceCenter", "intelligence"].includes(item.feature)) ? "PREMIUM_FEATURE_BLOCKED_FOR_CURRENT_PLAN" : "NO_BYPASS_DETECTED",
+    bypass: checks.some((item) => item.feature && !item.allowed && ["commandCenter", "performanceCenter", "intelligence", "predictionCenter"].includes(item.feature)) ? "PREMIUM_FEATURE_BLOCKED_FOR_CURRENT_PLAN" : "NO_BYPASS_DETECTED",
     recentDenied,
     mockSyntheticCheck: { status: "REAL_DATA_ENFORCED", rule: "plan gates run before premium payloads; engine source-integrity blocks mock/synthetic inputs" },
     checkedAt: new Date().toISOString(),

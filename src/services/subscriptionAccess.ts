@@ -6,7 +6,7 @@
 import { prisma } from "../lib/prisma.ts";
 
 export type PlanCode = "FREE" | "PRO" | "PREMIUM";
-export type FeatureKey = "dashboard" | "radarGreen" | "oddsDoDia" | "greenAiReport" | "commandCenter" | "performanceCenter" | "intelligence" | "alerts";
+export type FeatureKey = "dashboard" | "radarGreen" | "oddsDoDia" | "greenAiReport" | "commandCenter" | "performanceCenter" | "intelligence" | "predictionCenter" | "alerts";
 
 export const PLAN_DEFINITIONS = {
   FREE: {
@@ -45,7 +45,7 @@ export const PLAN_DEFINITIONS = {
 };
 
 export const PUBLIC_ROUTES = ["/", "/login", "/register", "/pricing", "/terms", "/privacy", "/risk-disclaimer"];
-export const PROTECTED_ROUTES = ["/dashboard", "/radar-green", "/odds-do-dia", "/green-ai-report", "/command-center", "/performance-center", "/intelligence"];
+export const PROTECTED_ROUTES = ["/dashboard", "/radar-green", "/odds-do-dia", "/green-ai-report", "/command-center", "/performance-center", "/intelligence", "/prediction"];
 
 export const ROUTE_FEATURE: Record<string, FeatureKey> = {
   "/dashboard": "dashboard",
@@ -55,6 +55,7 @@ export const ROUTE_FEATURE: Record<string, FeatureKey> = {
   "/command-center": "commandCenter",
   "/performance-center": "performanceCenter",
   "/intelligence": "intelligence",
+  "/prediction": "predictionCenter",
 };
 
 export async function ensureSubscriptionPlans() {

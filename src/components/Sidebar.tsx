@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BrainCircuit, CalendarDays, Command, Crosshair, Database, FileBarChart, FileCheck2, FlaskConical, Gauge, HeartPulse, History, Info, Layers3, LockKeyhole, Radio, Rocket, Settings, ShieldCheck, Sparkles, Telescope, Timer, Trophy } from "lucide-react";
+import { Activity, BrainCircuit, CalendarDays, Command, Crosshair, Database, FileBarChart, FileCheck2, FlaskConical, Gauge, HeartPulse, History, Info, Layers3, LockKeyhole, Radio, Rocket, Settings, ShieldCheck, Sparkles, Target, Telescope, Timer, Trophy } from "lucide-react";
 
 const links = [
   ["/command-center", "Command Center", Command],
   ["/intelligence", "Intelligence Center", Telescope],
+  ["/prediction", "Prediction Center", Target],
   ["/green-ai", "Green AI", BrainCircuit],
   ["/green-ai-report", "Relatorio AI", FileBarChart],
   ["/model-performance", "Performance ML", Activity],
