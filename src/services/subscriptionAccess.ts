@@ -1,4 +1,9 @@
-import { prisma } from "@/lib/prisma";
+// Import relativo (não `@/`) — este módulo não depende de nenhuma API
+// exclusiva do runtime do Next.js, e precisa ser importável também por
+// scripts standalone executados via `node` (ex.:
+// `scripts/bootstrap-admin.mjs`), que não resolvem o alias `@/`.
+// Comportamento idêntico sob o bundler do Next.js.
+import { prisma } from "../lib/prisma.ts";
 
 export type PlanCode = "FREE" | "PRO" | "PREMIUM";
 export type FeatureKey = "dashboard" | "radarGreen" | "oddsDoDia" | "greenAiReport" | "commandCenter" | "performanceCenter" | "alerts";
@@ -108,4 +113,14 @@ export async function assignFreePlan(userId: string) {
   const plan = await prisma.subscriptionPlan.findUnique({ where: { code: "FREE" } });
   if (!plan) throw new Error("FREE_PLAN_NOT_AVAILABLE");
   return prisma.userSubscription.create({ data: { userId, planId: plan.id, status: "ACTIVE", source: "REGISTRATION" } });
+}
+
+/** Concede acesso completo (plano PREMIUM) — usado exclusivamente pelo
+ * bootstrap do primeiro administrador (`scripts/bootstrap-admin.mjs`),
+ * nunca pelo fluxo normal de registro. */
+export async function assignPremiumPlan(userId: string, source = "ADMIN_BOOTSTRAP") {
+  await ensureSubscriptionPlans();
+  const plan = await prisma.subscriptionPlan.findUnique({ where: { code: "PREMIUM" } });
+  if (!plan) throw new Error("PREMIUM_PLAN_NOT_AVAILABLE");
+  return prisma.userSubscription.create({ data: { userId, planId: plan.id, status: "ACTIVE", source } });
 }

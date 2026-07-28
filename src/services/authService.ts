@@ -1,32 +1,21 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { assignFreePlan, canAccessFeature, getActiveSubscription, ROUTE_FEATURE, type FeatureKey } from "./subscriptionAccess";
+import { assertValidCredentials, hashPassword, normalizeEmail, verifyPassword } from "@/lib/passwordHash";
 
 export const SESSION_COOKIE = "gop_session";
 const SESSION_DAYS = 30;
 
+// `hashPassword`/`verifyPassword` reexportados para preservar a API
+// pública já existente deste módulo — a implementação agora vive em
+// `@/lib/passwordHash` (independente do runtime do Next.js), sem
+// nenhuma alteração de comportamento.
+export { hashPassword, verifyPassword };
+
 function authSecret() {
   return process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_URL || "development-only-auth-secret";
-}
-
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
-export function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const key = scryptSync(password, salt, 64).toString("hex");
-  return `scrypt:${salt}:${key}`;
-}
-
-export function verifyPassword(password: string, stored: string | null | undefined) {
-  if (!stored?.startsWith("scrypt:")) return false;
-  const [, salt, key] = stored.split(":");
-  const candidate = Buffer.from(scryptSync(password, salt, 64).toString("hex"), "hex");
-  const expected = Buffer.from(key, "hex");
-  return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
 function sessionDigest(token: string) {
@@ -94,8 +83,7 @@ export async function getCurrentUser() {
 export async function registerUser(input: { name?: string; email: string; password: string }) {
   await import("./subscriptionAccess").then((module) => module.ensureSubscriptionPlans());
   const email = normalizeEmail(input.email);
-  if (!email.includes("@")) throw new Error("EMAIL_INVALID");
-  if (input.password.length < 8) throw new Error("PASSWORD_TOO_SHORT");
+  assertValidCredentials(email, input.password);
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new Error("EMAIL_ALREADY_REGISTERED");
   const user = await prisma.user.create({ data: { name: input.name?.trim() || undefined, email, passwordHash: hashPassword(input.password) } });
