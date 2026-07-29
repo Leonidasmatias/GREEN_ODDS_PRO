@@ -47,13 +47,20 @@ export default async function DashboardPage() {
       </div>
     </section>
 
-    {showWorkerFallback && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] px-4 py-3 text-xs text-amber-200">{fallbackMessage}</div>}
+    {showWorkerFallback && <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[.05] px-4 py-3 text-xs text-amber-200">{snapshot.noActiveLeagueEvents ? "Provider conectado e saudavel — nenhuma liga monitorada tem eventos no momento. Nova selecao automatica sera tentada em breve." : fallbackMessage}</div>}
     {snapshot.syncWarning && <div className="mb-6 rounded-xl border border-amber-400/15 bg-amber-400/[.05] px-4 py-3 text-[10px] text-amber-200">{snapshot.syncWarning}</div>}
 
     <section className="mb-6 grid gap-4 md:grid-cols-3">
-      <div className="card p-4"><p className="label">Provider ativo</p><strong className="mt-2 block text-lg text-white">{snapshot.provider}</strong></div>
+      <div className="card p-4"><p className="label">Provider ativo</p><strong className={`mt-2 block text-lg ${snapshot.providerHealthy ? "text-neon" : "text-white"}`}>{snapshot.provider}</strong></div>
       <div className="card p-4"><p className="label">Creditos restantes</p><strong className={`mt-2 block text-lg ${snapshot.creditsRemaining == null ? "text-zinc-500" : snapshot.creditsRemaining <= 5 ? "text-amber-300" : "text-neon"}`}>{snapshot.creditsRemaining ?? "N/A"}</strong></div>
       <div className="card p-4"><p className="label">Sync</p><strong className={`mt-2 block text-lg ${snapshot.syncStatus === "SUCCESS" ? "text-neon" : "text-amber-300"}`}>{snapshot.syncStatus}</strong></div>
+    </section>
+
+    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="card p-4"><p className="label">Liga utilizada</p><strong className="mt-2 block text-sm text-white">{snapshot.league ?? snapshot.sport ?? "N/A"}</strong></div>
+      <div className="card p-4"><p className="label">Eventos encontrados / persistidos</p><strong className="mt-2 block text-lg text-white">{snapshot.eventsFound ?? "N/A"} / {snapshot.eventsPersisted ?? "N/A"}</strong></div>
+      <div className="card p-4"><p className="label">Odds encontradas / persistidas</p><strong className="mt-2 block text-lg text-white">{snapshot.oddsFound ?? "N/A"} / {snapshot.oddsPersisted ?? "N/A"}</strong></div>
+      <div className="card p-4"><p className="label">Latencia</p><strong className="mt-2 block text-lg text-white">{snapshot.latencyMs == null ? "N/A" : `${snapshot.latencyMs}ms`}</strong></div>
     </section>
 
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">{overviewCards.map((card) => <StatusCard key={card.label} {...card}/>)}</div>
@@ -106,7 +113,7 @@ export default async function DashboardPage() {
       <section className="card overflow-hidden p-6">
         <div className="flex items-center justify-between"><div><p className="label text-neon">Snapshot do mercado</p><h2 className="mt-2 text-xl font-black">Resumo persistido</h2></div><div className="grid h-11 w-11 place-items-center rounded-xl bg-neon/10 text-neon"><Database/></div></div>
         <div className="my-7 text-center"><p className="text-6xl font-black tracking-tighter">{snapshot.games.length}</p><p className="mt-2 text-xs text-zinc-500">partidas exibidas</p></div>
-        <div className="space-y-3 text-xs text-zinc-500"><p>Provider: <b className="text-white">{snapshot.provider}</b></p><p>Ultimo sync real: <b className="text-white">{formatDate(snapshot.lastSyncAt)}</b></p><p>Atualizado na tela: <b className="text-white">{formatDate(snapshot.generatedAt)}</b></p><p>Odds persistidas: <b className="text-white">{snapshot.counts.oddsSnapshots}</b></p><p>Green Scores: <b className="text-white">{snapshot.counts.greenScoreAnalyses}</b></p></div>
+        <div className="space-y-3 text-xs text-zinc-500"><p>Provider: <b className="text-white">{snapshot.provider}</b></p><p>Liga: <b className="text-white">{snapshot.league ?? "N/A"}</b></p><p>Mercados: <b className="text-white">{snapshot.market ?? "N/A"}</b></p><p>Ultimo sync real: <b className="text-white">{formatDate(snapshot.lastSyncAt)}</b></p><p>Atualizado na tela: <b className="text-white">{formatDate(snapshot.generatedAt)}</b></p><p>Odds persistidas: <b className="text-white">{snapshot.counts.oddsSnapshots}</b></p><p>Green Scores: <b className="text-white">{snapshot.counts.greenScoreAnalyses}</b></p></div>
       </section>
     </div>
 

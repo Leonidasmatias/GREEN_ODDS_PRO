@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Game } from "@/lib/types";
+import { getProviderHealth } from "@/providers/providerManager";
+import { parseProviderSyncMetadata } from "./providerSyncMetadata";
 
 type LatestValueAnalysis = {
   id: string;
@@ -48,12 +50,26 @@ type EngineRun = {
 export type DashboardSnapshot = {
   generatedAt: string;
   provider: string;
+  /** Sprint 9.2.1 — true quando algum provider configurado esta autenticado e sem falha (independente de ter eventos agora). */
+  providerHealthy: boolean;
   cacheActive: boolean;
   cacheUpdatedAt: string | null;
   creditsRemaining: number | null;
   lastSyncAt: string | null;
   syncStatus: string;
   syncWarning: string | null;
+  /** Sprint 9.2.1 (Fase 5) — esporte/liga/mercado e contagens da ultima sincronizacao real, lidos de AuditLog (PROVIDER_SYNC). */
+  sport: string | null;
+  league: string | null;
+  market: string | null;
+  eventsFound: number | null;
+  eventsPersisted: number | null;
+  oddsFound: number | null;
+  oddsPersisted: number | null;
+  /** Latencia da ultima chamada real ao provider (ms), quando disponivel. */
+  latencyMs: number | null;
+  /** true quando o provider esta saudavel mas nenhuma liga monitorada tem eventos agora — nunca deve ser confundido com "provider ativo: none". */
+  noActiveLeagueEvents: boolean;
   counts: {
     matches: number;
     liveMatches: number;
@@ -182,17 +198,42 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   }).catch(() => []);
   const profit = profitRows.reduce((sum, tip) => sum + (tip.profit ?? 0), 0);
   const stake = profitRows.reduce((sum, tip) => sum + (tip.stake || tip.stakeSuggested || 0), 0);
-  const provider = latestSync?.provider ?? latestProviderCall?.provider ?? latestCache?.provider ?? "none";
+
+  // Sprint 9.2.1 (Fase 5) — a saude do provider (configurado + sem falha)
+  // e determinada independentemente de a ultima sincronizacao ter
+  // encontrado eventos, para nunca exibir "Provider ativo: none" quando
+  // a API esta, de fato, saudavel — apenas sem jogos nas ligas
+  // monitoradas neste momento.
+  const [providerHealth, latestSyncAudit] = await Promise.all([
+    getProviderHealth().catch(() => []),
+    prisma.auditLog.findFirst({ where: { category: "PROVIDER_SYNC" }, orderBy: { createdAt: "desc" } }).catch(() => null),
+  ]);
+  const healthyProvider = providerHealth.find((item) => item.configured && item.status !== "FAILED" && item.status !== "NOT_CONFIGURED");
+  const configuredProvider = providerHealth.find((item) => item.configured);
+  const providerHealthy = Boolean(healthyProvider);
+  const provider = healthyProvider?.id ?? configuredProvider?.id ?? latestSync?.provider ?? latestProviderCall?.provider ?? latestCache?.provider ?? "none";
+  const syncMetadata = parseProviderSyncMetadata(latestSyncAudit?.metadata);
+  const noActiveLeagueEvents = providerHealthy && matches === 0 && syncMetadata !== null && (syncMetadata.eventsFound ?? 0) === 0;
 
   const snapshot: DashboardSnapshot = {
     generatedAt: new Date().toISOString(),
     provider,
+    providerHealthy,
     cacheActive: Boolean(latestCache && latestCache.expiresAt > new Date()),
     cacheUpdatedAt: toIso(latestCache?.updatedAt),
     creditsRemaining: latestProviderCall?.remainingLimit ?? null,
     lastSyncAt: toIso(latestSync?.completedAt ?? latestSync?.startedAt),
     syncStatus: latestSync?.status ?? "NOT_RUN",
     syncWarning: latestSync?.warning ?? null,
+    sport: syncMetadata?.sport ?? null,
+    league: syncMetadata?.league ?? null,
+    market: syncMetadata?.market ?? null,
+    eventsFound: syncMetadata?.eventsFound ?? null,
+    eventsPersisted: syncMetadata?.eventsPersisted ?? null,
+    oddsFound: syncMetadata?.oddsFound ?? null,
+    oddsPersisted: syncMetadata?.oddsPersisted ?? null,
+    latencyMs: healthyProvider?.latencyMs ?? configuredProvider?.latencyMs ?? null,
+    noActiveLeagueEvents,
     counts: { matches, liveMatches, oddsSnapshots, tipsPending, tipsSettled: settled, valueAnalyses, greenScoreAnalyses, oddsOfDay },
     settlement: {
       won: tipsWon,
@@ -246,7 +287,12 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       dataQuality: { status: dataQualityRun?.status ?? "PENDING", at: toIso(dataQualityRun?.finishedAt ?? dataQualityRun?.startedAt), detail: dataQualityRun?.classification },
       resultSync: { status: resultSyncRun?.status ?? "PENDING", at: toIso(resultSyncRun?.finishedAt ?? resultSyncRun?.startedAt), detail: resultSyncRun?.errors ?? resultSyncRun?.notes },
     },
-    emptyMessage: matches || oddsSnapshots || valueAnalyses || greenScoreAnalyses ? null : "Dados ainda nao processados pelo worker.",
+    emptyMessage:
+      matches || oddsSnapshots || valueAnalyses || greenScoreAnalyses
+        ? null
+        : noActiveLeagueEvents
+          ? "Provider conectado e saudavel, mas nenhuma liga monitorada tem eventos no momento."
+          : "Dados ainda nao processados pelo worker.",
   };
 
   console.log(`[dashboard] snapshot ready durationMs=${Date.now() - startedAt}`);

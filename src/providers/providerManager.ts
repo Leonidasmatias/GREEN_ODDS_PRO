@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getProviderUsageBudget, isProviderEconomyMode } from "@/services/providerEconomyService";
 import { redactSecrets } from "@/services/securityService";
+import { isSchedulerEnabled } from "@/services/schedulerService";
+import { parseProviderSyncMetadata } from "@/services/providerSyncMetadata";
 import { ApiFootballProvider } from "./apiFootball";
 import { MockProvider } from "./mockProvider";
 import { SportMonksProvider } from "./sportMonks";
@@ -137,22 +139,25 @@ export async function getProviderLiveFeed() {
     try {
       const matches = await monitoredCall(provider, "getMatches", () => provider.getMatches());
       const odds = await monitoredCall(provider, "getOdds", () => provider.getOdds());
-      if (!matches.data.length || !odds.data.length) {
-        errors.push(`${provider.id}: partidas ou odds vazias`);
-        continue;
-      }
+      // Sprint 9.2.1 (Fase 5): um provider que respondeu com sucesso
+      // (autenticado, sem erro HTTP) mas sem eventos agora NAO e uma
+      // falha de provider — e um estado valido (nenhuma liga monitorada
+      // tem jogo neste momento). Retorna imediatamente em vez de tentar
+      // outro provider, e marca `empty: true` para que o chamador nunca
+      // confunda isso com "provider ativo: none".
       return {
         provider,
         matches: matches.data,
         odds: odds.data,
         remainingLimit: odds.remainingLimit ?? matches.remainingLimit,
         failoverErrors: errors,
+        empty: matches.data.length === 0 || odds.data.length === 0,
       };
     } catch (error) {
       errors.push(`${provider.id}: ${friendlyProviderError(provider.id, error)}`);
     }
   }
-  throw new Error(`Nenhum provedor forneceu partidas e odds. ${errors.join(" | ")}`);
+  throw new Error(`Nenhum provedor disponivel para partidas e odds. ${errors.join(" | ")}`);
 }
 
 export async function getProviderHealth() {
@@ -162,6 +167,8 @@ export async function getProviderHealth() {
     const last = providerCalls[0];
     const failures = providerCalls.filter((call) => call.status === "FAILED").length;
     const exhausted = providerCalls.some((call) => call.status === "EXHAUSTED");
+    const latencies = providerCalls.map((call) => call.latencyMs).filter((value): value is number => typeof value === "number");
+    const averageLatencyMs = latencies.length ? Math.round(latencies.reduce((sum, value) => sum + value, 0) / latencies.length) : null;
     return {
       id: provider.id,
       licensed: provider.licensed,
@@ -169,6 +176,7 @@ export async function getProviderHealth() {
       status: !provider.isConfigured() ? "NOT_CONFIGURED" : last?.status ?? "READY",
       exhausted,
       latencyMs: last?.latencyMs ?? null,
+      averageLatencyMs,
       callsMade: providerCalls.length,
       remainingLimit: providerCalls.find((call) => call.remainingLimit != null)?.remainingLimit ?? null,
       failures,
@@ -179,15 +187,21 @@ export async function getProviderHealth() {
 }
 
 export async function getProvidersStatus() {
-  const [health, latestExhausted, budget] = await Promise.all([
+  const [health, latestExhausted, budget, latestSyncLog, latestSuccessfulSyncLog, schedulerEnabled] = await Promise.all([
     getProviderHealth(),
     prisma.auditLog.findFirst({ where: { category: "provider_exhausted" }, orderBy: { createdAt: "desc" } }).catch(() => null),
     getProviderUsageBudget("the-odds-api"),
+    prisma.auditLog.findFirst({ where: { category: "PROVIDER_SYNC" }, orderBy: { createdAt: "desc" } }).catch(() => null),
+    prisma.auditLog.findFirst({ where: { category: "PROVIDER_SYNC", status: "SUCCESS" }, orderBy: { createdAt: "desc" } }).catch(() => null),
+    isSchedulerEnabled(),
   ]);
   const configuredProviders = priority().filter((provider) => provider.isConfigured()).map((provider) => provider.id);
   const oddsProviders = oddsPriority().map((provider) => provider.id);
   const resultProviders = resultPriority().map((provider) => provider.id);
   const active = health.find((provider) => provider.configured && provider.status === "SUCCESS") ?? health.find((provider) => provider.configured && provider.status === "READY") ?? null;
+  const syncMetadata = parseProviderSyncMetadata(latestSyncLog?.metadata);
+  const databaseWrites = syncMetadata?.eventsPersisted != null && syncMetadata?.oddsPersisted != null ? syncMetadata.eventsPersisted + syncMetadata.oddsPersisted : null;
+
   return {
     economyMode: isProviderEconomyMode(),
     callsToday: budget.callsToday,
@@ -207,6 +221,17 @@ export async function getProvidersStatus() {
     providerWarnings: [latestExhausted?.message].filter(Boolean),
     exhaustedWarning: latestExhausted?.message ?? null,
     providers: health,
+    // Sprint 9.2.1 (Fase 6) — campos expandidos do pipeline de dados ao vivo.
+    sport: syncMetadata?.sport ?? null,
+    league: syncMetadata?.league ?? null,
+    market: syncMetadata?.market ?? null,
+    eventsLoaded: syncMetadata?.eventsFound ?? null,
+    oddsLoaded: syncMetadata?.oddsFound ?? null,
+    databaseWrites,
+    lastSuccessfulSync: latestSuccessfulSyncLog?.createdAt.toISOString() ?? null,
+    schedulerStatus: schedulerEnabled ? "ENABLED" : "DISABLED",
+    remainingCredits: budget.creditsRemaining,
+    lastLatency: active?.latencyMs ?? health.find((provider) => provider.configured)?.latencyMs ?? null,
     checkedAt: new Date().toISOString(),
   };
 }

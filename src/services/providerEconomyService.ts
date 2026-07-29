@@ -2,14 +2,26 @@ import { prisma } from "@/lib/prisma";
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
+const MINUTE = 60 * 1000;
 const DAILY_LIMIT = 10;
 const HOURLY_LIMIT = 2;
+
+function parseTtlMs(envName: string, fallback: number): number {
+  const raw = process.env[envName]?.trim();
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 export const providerCacheTtl = {
   odds: 6 * HOUR,
   events: 24 * HOUR,
-  sports: 24 * HOUR,
+  sports: parseTtlMs("ODDS_SPORTS_CACHE_TTL_MS", 24 * HOUR),
   status: 30 * 60 * 1000,
+  /** Sprint 9.2.1 — quanto tempo a liga ativa auto-selecionada fica em cache antes de nova descoberta. */
+  leagueSelection: parseTtlMs("ODDS_LEAGUE_SELECTION_CACHE_TTL_MS", HOUR),
+  /** Sprint 9.2.1 — TTL curto usado quando NENHUMA liga tinha eventos na ultima descoberta, para tentar de novo em breve sem martelar a API a cada sync. */
+  leagueSelectionEmptyRetry: parseTtlMs("ODDS_LEAGUE_EMPTY_RETRY_TTL_MS", 15 * MINUTE),
 };
 
 export function isProviderEconomyMode() {
@@ -63,21 +75,36 @@ export async function assertProviderCallAllowed(provider: string, endpoint: stri
   if (budget.hourlyLimitReached) throw new Error(`PROVIDER_HOURLY_LIMIT_REACHED: ${provider} ${endpoint}`);
 }
 
-export async function readProviderCache<T>(provider: string, cacheKey: string) {
-  if (!isProviderEconomyMode()) return null;
+/**
+ * Cache sempre ativo (Sprint 9.2.1), independente de PROVIDER_ECONOMY_MODE —
+ * usado para descoberta/selecao de liga, onde o objetivo nao e "economizar
+ * chamadas em modo economico" e sim "nunca repetir uma descoberta cara
+ * (varredura de varias ligas) a cada sync". Backing store identico ao cache
+ * de economia (mesma tabela ProviderCache), apenas sem o gate de modo.
+ */
+export async function readCache<T>(provider: string, cacheKey: string) {
   const row = await prisma.providerCache.findUnique({ where: { provider_cacheKey: { provider, cacheKey } } }).catch(() => null);
   if (!row || row.expiresAt <= new Date()) return null;
   return JSON.parse(row.payload) as T;
 }
 
-export async function writeProviderCache(provider: string, cacheKey: string, payload: unknown, ttlMs: number) {
-  if (!isProviderEconomyMode()) return;
+export async function writeCache(provider: string, cacheKey: string, payload: unknown, ttlMs: number) {
   const expiresAt = new Date(Date.now() + ttlMs);
   await prisma.providerCache.upsert({
     where: { provider_cacheKey: { provider, cacheKey } },
     update: { payload: JSON.stringify(payload), expiresAt },
     create: { provider, cacheKey, payload: JSON.stringify(payload), expiresAt },
   }).catch(() => undefined);
+}
+
+export async function readProviderCache<T>(provider: string, cacheKey: string) {
+  if (!isProviderEconomyMode()) return null;
+  return readCache<T>(provider, cacheKey);
+}
+
+export async function writeProviderCache(provider: string, cacheKey: string, payload: unknown, ttlMs: number) {
+  if (!isProviderEconomyMode()) return;
+  return writeCache(provider, cacheKey, payload, ttlMs);
 }
 
 export function cacheTtlForEndpoint(endpoint: string) {
