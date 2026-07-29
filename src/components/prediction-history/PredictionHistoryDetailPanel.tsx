@@ -13,6 +13,7 @@ import { PredictionMarkets } from "@/components/prediction/PredictionMarkets";
 import { PredictionRecommendation } from "@/components/prediction/PredictionRecommendation";
 import { PredictionFactors } from "@/components/prediction/PredictionFactors";
 import { PredictionRiskPanel } from "@/components/prediction/PredictionRiskPanel";
+import { PredictionExplanationSection } from "./PredictionExplanationSection";
 import { useDrawerFocusTrap } from "./useDrawerFocusTrap";
 
 type LoadState =
@@ -100,6 +101,7 @@ function DetailContent({ detail }: { detail: PredictionDetail }) {
       <PredictionRecommendation bestMarket={viewModel.bestMarket} />
       <PredictionFactors explanation={viewModel.explanation} />
       <PredictionRiskPanel risk={viewModel.risk} />
+      <PredictionExplanationSection id={detail.id} />
     </div>
   );
 }

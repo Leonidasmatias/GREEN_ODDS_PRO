@@ -13,12 +13,14 @@
 // continuam importando via `@/lib/predictionApiClient` normalmente.
 import type { PredictionDetail, PredictionQueryInput, PredictionQueryPage, PredictionSummary } from "../services/prediction-query/predictionQueryTypes.ts";
 import type { PredictionRecordSource } from "../repositories/prediction/PredictionRepository.ts";
+import type { PredictionExplanationView } from "../services/prediction-explanation/index.ts";
 
 // Reexportados para que os componentes da UI importem contratos e
 // funções de um único ponto (`@/lib/predictionApiClient`) — nunca
-// alcançando `src/services/prediction-query/*`/`src/repositories/*`
-// diretamente. Nenhum tipo é redefinido: apenas repassado.
-export type { PredictionSummary, PredictionDetail, PredictionQueryInput, PredictionQueryPage, PredictionRecordSource };
+// alcançando `src/services/prediction-query/*`/`src/repositories/*`/
+// `src/services/prediction-explanation/*` diretamente. Nenhum tipo é
+// redefinido: apenas repassado.
+export type { PredictionSummary, PredictionDetail, PredictionQueryInput, PredictionQueryPage, PredictionRecordSource, PredictionExplanationView };
 
 /** Erro estável de transporte — `message`/`fields` já vêm da resposta
  * JSON de erro da API (nunca stack, causa ou detalhe de infraestrutura;
@@ -118,4 +120,15 @@ export async function getLatestPredictionByMatch(matchId: string, signal?: Abort
   if (status === 404) return null;
   throwIfError(status, body);
   return body as PredictionDetail;
+}
+
+/** `GET /api/predictions/[id]/explanation` (Sprint 9.0) — explicação
+ * estruturada (fatores, breakdown de confiança, razões, riscos,
+ * qualidade) sob demanda, sempre em conjunto com o detalhe já aberto —
+ * nunca buscada para itens da listagem (evita N+1). */
+export async function getPredictionExplanation(id: string, signal?: AbortSignal): Promise<PredictionExplanationView | null> {
+  const { status, body } = await requestJson(`/api/predictions/${encodeURIComponent(id)}/explanation`, signal);
+  if (status === 404) return null;
+  throwIfError(status, body);
+  return body as PredictionExplanationView;
 }
